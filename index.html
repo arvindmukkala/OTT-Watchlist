@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Now Queueing</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12172B;
+    --surface: #1C2340;
+    --surface-raised: #232B4D;
+    --gold: #D4A94F;
+    --gold-dim: #8A7238;
+    --text: #EDEAE0;
+    --muted: #8B92B0;
+    --watched: #6B9080;
+    --removing: #A8583F;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+  }
+  .wl-header { margin-bottom: 14px; }
+  .wl-marquee {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 0.5px;
+    color: var(--gold);
+    line-height: 1.1;
+    margin: 0;
+  }
+  .wl-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .wl-sync { color: var(--muted); font-size: 11.5px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wl-sync.error { color: var(--removing); }
+  .wl-refresh-btn {
+    background: none; border: 1px solid #313A63; color: var(--gold);
+    border-radius: 6px; padding: 3px 9px; font-size: 11.5px; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .wl-addbtn {
+    width: 100%; margin-top: 14px; background: var(--gold); color: #1A1300;
+    border: none; border-radius: 8px; padding: 12px; font-family: 'Inter', sans-serif;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .wl-addbtn.secondary { background: var(--surface-raised); color: var(--gold); border: 1px solid var(--gold-dim); margin-top: 8px; }
+
+  .wl-form {
+    background: var(--surface); border-radius: 10px; padding: 16px; margin-top: 14px;
+    display: none; flex-direction: column; gap: 10px;
+  }
+  .wl-form.open { display: flex; }
+  .wl-form label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .wl-row { display: flex; gap: 10px; }
+  .wl-row > div { flex: 1; }
+  .wl-form input, .wl-form select, .wl-form textarea {
+    width: 100%; background: var(--bg); border: 1px solid #313A63; color: var(--text);
+    border-radius: 6px; padding: 9px 10px; font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  .wl-form textarea { resize: none; height: 50px; }
+  .wl-formbtns { display: flex; gap: 10px; margin-top: 4px; }
+  .wl-formbtns button {
+    flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: 600;
+    font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  .wl-save { background: var(--gold); color: #1A1300; }
+  .wl-cancel { background: transparent; color: var(--muted); border: 1px solid #313A63 !important; }
+  .wl-form-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  .wl-filters { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; padding-bottom: 4px; }
+  .wl-pill {
+    flex: none; padding: 6px 12px; border-radius: 20px; background: var(--surface);
+    color: var(--muted); font-size: 12.5px; cursor: pointer; border: 1px solid transparent; white-space: nowrap;
+  }
+  .wl-pill.active { background: rgba(212,169,79,0.15); color: var(--gold); border-color: var(--gold-dim); }
+
+  .wl-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+  .wl-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 10px; line-height: 1.6; }
+
+  .wl-ticket { position: relative; background: var(--surface); border-radius: 8px; display: flex; overflow: hidden; }
+  .wl-ticket.wl-watched { opacity: 0.55; }
+  .wl-stub {
+    width: 6px; flex: none;
+    background: repeating-linear-gradient(to bottom, var(--gold-dim) 0px, var(--gold-dim) 6px, transparent 6px, transparent 12px);
+  }
+  .wl-ticket.wl-priority-high .wl-stub { background: repeating-linear-gradient(to bottom, var(--gold) 0px, var(--gold) 6px, transparent 6px, transparent 12px); }
+  .wl-ticket.wl-priority-low .wl-stub { background: repeating-linear-gradient(to bottom, #445 0px, #445 6px, transparent 6px, transparent 12px); }
+
+  .wl-body { flex: 1; padding: 14px 14px 12px 16px; }
+  .wl-toprow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .wl-title { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 18px; line-height: 1.2; }
+  .wl-title.done { text-decoration: line-through; text-decoration-color: var(--watched); }
+  .wl-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .wl-tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--surface-raised); color: var(--muted); }
+  .wl-tag.platform { color: var(--gold); }
+  .wl-tag.custom { color: #9FB4D4; }
+  .wl-notes { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  .wl-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
+  .wl-icon-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 4px; }
+  .wl-icon-btn.check { color: var(--watched); }
+  .wl-icon-btn.del { color: var(--removing); }
+
+  .wl-statusbtn {
+    margin-top: 10px; display: inline-block; font-size: 11.5px; padding: 5px 10px; border-radius: 6px;
+    background: var(--surface-raised); color: var(--text); border: 1px solid #313A63; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="wl-header">
+    <p class="wl-marquee">NOW QUEUEING</p>
+    <p class="wl-sub" id="wl-count">Loading your watchlist…</p>
+    <div class="wl-sync" id="wl-sync">
+      <span id="wl-sync-text">Syncing…</span>
+      <button class="wl-refresh-btn" onclick="wlSyncFromSheet()">🔄 Refresh</button>
+    </div>
+    <button class="wl-addbtn" onclick="wlToggleForm()">+ Add a film (saves to sheet)</button>
+
+    <div class="wl-form" id="wl-form">
+      <p class="wl-form-note" id="wl-form-context"></p>
+      <div>
+        <label>Title</label>
+        <input id="f-title" placeholder="e.g. Paatal Lok" />
+      </div>
+      <div class="wl-row">
+        <div>
+          <label>Language</label>
+          <select id="f-lang">
+            <option value="">Select</option>
+            <option value="Hindi">Hindi</option>
+            <option value="English">English</option>
+            <option value="Telugu">Telugu</option>
+            <option value="Tamil">Tamil</option>
+            <option value="Malayalam">Malayalam</option>
+            <option value="Asian">Asian</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Platform</label>
+          <select id="f-platform">
+            <option value="">Select</option>
+            <option value="Prime Video">Prime Video</option>
+            <option value="Netflix">Netflix</option>
+            <option value="Jio Hotstar">Jio Hotstar</option>
+            <option value="Zee 5">Zee 5</option>
+            <option value="Apple TV">Apple TV</option>
+            <option value="Aha">Aha</option>
+            <option value="Starz">Starz</option>
+            <option value="Simply South">Simply South</option>
+            <option value="Disney+">Disney+</option>
+            <option value="Hulu">Hulu</option>
+            <option value="SunNxt">SunNxt</option>
+            <option value="HBOMax">HBOMax</option>
+            <option value="Peacock">Peacock</option>
+          </select>
+        </div>
+      </div>
+      <div class="wl-row">
+        <div>
+          <label>Genre / Type</label>
+          <input id="f-genre" placeholder="e.g. Movie, Series - S1" />
+        </div>
+        <div>
+          <label>Priority</label>
+          <select id="f-priority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <textarea id="f-notes" placeholder="Why you want to watch it, who recommended it…"></textarea>
+      </div>
+      <div class="wl-formbtns">
+        <button class="wl-cancel" onclick="wlToggleForm()">Cancel</button>
+        <button class="wl-save" onclick="wlSave()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wl-filters" id="wl-filters"></div>
+  <div class="wl-list" id="wl-list"></div>
+
+<script>
+  const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOxZJiwrf5qM-XNXrr6HgX0W3BoLpitMDTO4JTNr1h7DRy51L_9NI18TMsuBGULluIFWDs3RAq2S-H/pub?gid=0&single=true&output=csv";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwE70_QV5GOGam2E8u9Pzt6e-ZB_OYClKzGkkC6bKVGWMMb-pRd7pf-0onXoCL_hbV4/exec";
+
+  const LS_OVERRIDES = 'wl-overrides';   // { titleKey: {status, priority, notes} } — local edits to sheet-sourced rows
+  const LS_HIDDEN = 'wl-hidden';         // [titleKey, ...] sheet rows hidden locally
+  const LS_PENDING = 'wl-pending-adds';  // [ {title,language,platform,genre,priority,notes,status,added} ] — sent to sheet, not yet confirmed in a sync
+  const LS_CACHE = 'wl-sheet-cache';     // { rows: [...], syncedAt: ts }
+
+  let sheetItems = [];
+  let pendingAdds = [];
+  let overrides = {};
+  let hidden = [];
+  let editingId = null;
+  let activeFilter = { type: 'status', value: 'to_watch' };
+  let lastSynced = null;
+
+  const keyOf = (title) => (title || '').trim().toLowerCase();
+
+  function readLS(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function writeLS(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  // Fire-and-forget write to the Apps Script endpoint. mode:'no-cors' means we can't
+  // read the response, but the request still reaches the script and runs there.
+  function wlWriteToSheet(payload) {
+    try {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  function parseCSV(text) {
+    const rows = [];
+    let i = 0, field = '', row = [], inQuotes = false;
+    while (i < text.length) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += c; i++; continue;
+      } else {
+        if (c === '"') { inQuotes = true; i++; continue; }
+        if (c === ',') { row.push(field); field = ''; i++; continue; }
+        if (c === '\r') { i++; continue; }
+        if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+        field += c; i++; continue;
+      }
+    }
+    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function rowsToItems(rows) {
+    if (!rows.length) return [];
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    return rows.slice(1)
+      .filter(r => r.some(c => c.trim() !== ''))
+      .map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => obj[h] = (r[idx] || '').trim());
+        return {
+          title: obj.title || 'Untitled',
+          language: obj.language || '',
+          platform: obj.platform || '',
+          genre: obj.genre || '',
+          priority: (obj.priority || 'medium').toLowerCase(),
+          notes: obj.notes || '',
+          status: (obj.status || 'to watch').toLowerCase().replace(/\s+/g, '_')
+        };
+      });
+  }
+
+  async function wlSyncFromSheet() {
+    const syncText = document.getElementById('wl-sync-text');
+    const syncBox = document.getElementById('wl-sync');
+    syncText.textContent = 'Syncing…';
+    syncBox.classList.remove('error');
+    try {
+      const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Fetch failed');
+      const text = await res.text();
+      const rows = parseCSV(text);
+      const parsed = rowsToItems(rows);
+      sheetItems = parsed;
+      lastSynced = Date.now();
+      writeLS(LS_CACHE, { rows: parsed, syncedAt: lastSynced });
+
+      // Drop any pending add that's now confirmed present in the sheet
+      const sheetKeys = new Set(parsed.map(i => keyOf(i.title)));
+      pendingAdds = pendingAdds.filter(p => !sheetKeys.has(keyOf(p.title)));
+      writeLS(LS_PENDING, pendingAdds);
+
+      syncText.textContent = 'Synced just now from sheet';
+    } catch (e) {
+      const cached = readLS(LS_CACHE, null);
+      if (cached) {
+        sheetItems = cached.rows;
+        lastSynced = cached.syncedAt;
+        syncText.textContent = `Offline — showing data from last sync (${new Date(lastSynced).toLocaleString()})`;
+        syncBox.classList.add('error');
+      } else {
+        sheetItems = [];
+        syncText.textContent = 'Could not load sheet, and no cached data yet';
+        syncBox.classList.add('error');
+      }
+    }
+    render();
+  }
+
+  function wlToggleForm() {
+    editingId = null;
+    const form = document.getElementById('wl-form');
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) {
+      ['f-title','f-lang','f-platform','f-genre','f-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-priority').value = 'medium';
+      document.getElementById('wl-form-context').textContent = '';
+    }
+  }
+
+  function wlSave() {
+    const title = document.getElementById('f-title').value.trim();
+    if (!title) { document.getElementById('f-title').focus(); return; }
+    const fields = {
+      title,
+      language: document.getElementById('f-lang').value,
+      platform: document.getElementById('f-platform').value,
+      genre: document.getElementById('f-genre').value.trim(),
+      priority: document.getElementById('f-priority').value,
+      notes: document.getElementById('f-notes').value.trim()
+    };
+
+    if (editingId && editingId.startsWith('sheet:')) {
+      // editing a sheet-sourced row -> save locally as override AND push update to the sheet
+      const tKey = editingId.slice(6);
+      overrides[tKey] = { ...(overrides[tKey] || {}), priority: fields.priority, notes: fields.notes };
+      writeLS(LS_OVERRIDES, overrides);
+      wlWriteToSheet({ action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes });
+    } else if (editingId && editingId.startsWith('pending:')) {
+      // editing an item we already sent but haven't seen confirmed yet
+      const idx = pendingAdds.findIndex(p => p.title === editingId.slice(8));
+      if (idx > -1) pendingAdds[idx] = { ...pendingAdds[idx], ...fields };
+      writeLS(LS_PENDING, pendingAdds);
+      wlWriteToSheet({ action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes });
+    } else {
+      // brand new item -> add locally right away, and push to the sheet
+      pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
+      writeLS(LS_PENDING, pendingAdds);
+      wlWriteToSheet({ action: 'add', ...fields, status: 'to_watch' });
+    }
+    editingId = null;
+    document.getElementById('wl-form').classList.remove('open');
+    render();
+  }
+
+  function wlEdit(id, kind) {
+    const item = getMergedItems().find(i => i._id === id);
+    if (!item) return;
+    editingId = id;
+    document.getElementById('f-title').value = item.title;
+    document.getElementById('f-lang').value = item.language;
+    document.getElementById('f-platform').value = item.platform;
+    document.getElementById('f-genre').value = item.genre;
+    document.getElementById('f-priority').value = item.priority;
+    document.getElementById('f-notes').value = item.notes;
+    document.getElementById('wl-form-context').textContent = kind === 'sheet'
+      ? "Priority and notes save straight to your sheet. Title/language/platform are best edited there directly."
+      : "This was just added and is syncing to your sheet — should be fully confirmed within a few minutes.";
+    document.getElementById('wl-form').classList.add('open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function wlDelete(id, kind) {
+    if (kind === 'sheet') {
+      const tKey = id.slice(6);
+      if (!hidden.includes(tKey)) hidden.push(tKey);
+      writeLS(LS_HIDDEN, hidden);
+      // Note: this hides it on this device only — the sheet write-back doesn't support
+      // deleting rows yet, so remove it from the sheet directly if you want it fully gone.
+    } else {
+      pendingAdds = pendingAdds.filter(p => p.title !== id.slice(8));
+      writeLS(LS_PENDING, pendingAdds);
+    }
+    render();
+  }
+
+  function wlCycleStatus(id, kind) {
+    const order = ['to_watch', 'watching', 'watched'];
+    if (kind === 'sheet') {
+      const tKey = id.slice(6);
+      const current = (overrides[tKey] && overrides[tKey].status) ||
+        (sheetItems.find(i => keyOf(i.title) === tKey) || {}).status || 'to_watch';
+      const next = order[(order.indexOf(current) + 1) % order.length];
+      overrides[tKey] = { ...(overrides[tKey] || {}), status: next };
+      writeLS(LS_OVERRIDES, overrides);
+      const src = sheetItems.find(i => keyOf(i.title) === tKey);
+      wlWriteToSheet({ action: 'update', title: src ? src.title : tKey, status: next });
+    } else {
+      const t = id.slice(8);
+      pendingAdds = pendingAdds.map(p => {
+        if (p.title !== t) return p;
+        const next = order[(order.indexOf(p.status) + 1) % order.length];
+        return { ...p, status: next };
+      });
+      writeLS(LS_PENDING, pendingAdds);
+      const item = pendingAdds.find(p => p.title === t);
+      if (item) wlWriteToSheet({ action: 'update', title: t, status: item.status });
+    }
+    render();
+  }
+
+  function statusLabel(s) {
+    return s === 'to_watch' ? 'To watch' : s === 'watching' ? 'Watching' : 'Watched';
+  }
+
+  function getMergedItems() {
+    const visible = sheetItems.filter(i => !hidden.includes(keyOf(i.title)));
+    const fromSheet = visible.map(i => {
+      const tKey = keyOf(i.title);
+      const ov = overrides[tKey] || {};
+      return {
+        _id: 'sheet:' + tKey,
+        title: i.title,
+        language: i.language,
+        platform: i.platform,
+        genre: i.genre,
+        priority: ov.priority || i.priority || 'medium',
+        notes: ov.notes !== undefined ? ov.notes : i.notes,
+        status: ov.status || i.status || 'to_watch',
+        kind: 'sheet'
+      };
+    });
+    const fromPending = pendingAdds.map(p => ({ ...p, _id: 'pending:' + p.title, kind: 'pending' }));
+    return [...fromPending, ...fromSheet];
+  }
+
+  function buildFilters(all) {
+    const platforms = [...new Set(all.map(i => i.platform).filter(Boolean))];
+    const languages = [...new Set(all.map(i => i.language).filter(Boolean))];
+    const container = document.getElementById('wl-filters');
+    const pills = [
+      { type: 'status', value: 'to_watch', label: 'To watch' },
+      { type: 'status', value: 'watching', label: 'Watching' },
+      { type: 'status', value: 'watched', label: 'Watched' },
+      { type: 'all', value: 'all', label: 'All' },
+      ...platforms.map(p => ({ type: 'platform', value: p, label: p })),
+      ...languages.map(l => ({ type: 'language', value: l, label: l })),
+    ];
+    container.innerHTML = pills.map(p => `
+      <div class="wl-pill ${activeFilter.type === p.type && activeFilter.value === p.value ? 'active' : ''}"
+           onclick='wlSetFilter(${JSON.stringify(p.type)}, ${JSON.stringify(p.value)})'>
+        ${p.label}
+      </div>
+    `).join('');
+  }
+
+  function wlSetFilter(type, value) {
+    activeFilter = { type, value };
+    render();
+  }
+
+  function filteredItems(all) {
+    if (activeFilter.type === 'all') return all;
+    if (activeFilter.type === 'status') return all.filter(i => i.status === activeFilter.value);
+    if (activeFilter.type === 'platform') return all.filter(i => i.platform === activeFilter.value);
+    if (activeFilter.type === 'language') return all.filter(i => i.language === activeFilter.value);
+    return all;
+  }
+
+  const priorityRank = { high: 0, medium: 1, low: 2 };
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function render() {
+    const all = getMergedItems();
+    document.getElementById('wl-count').textContent =
+      all.length === 0 ? 'Your watchlist is empty.' :
+      `${all.filter(i => i.status !== 'watched').length} to go · ${all.filter(i => i.status === 'watched').length} watched · ${all.length} total`;
+
+    buildFilters(all);
+
+    const list = filteredItems(all).sort((a, b) =>
+      (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1)
+    );
+    const listEl = document.getElementById('wl-list');
+
+    if (list.length === 0) {
+      listEl.innerHTML = `<div class="wl-empty">Nothing here yet.<br/>Tap "+ Add a film" or switch filters.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = list.map(i => `
+      <div class="wl-ticket wl-priority-${i.priority} ${i.status === 'watched' ? 'wl-watched' : ''}">
+        <div class="wl-stub"></div>
+        <div class="wl-body">
+          <div class="wl-toprow">
+            <div class="wl-title ${i.status === 'watched' ? 'done' : ''}">${escapeHtml(i.title)}</div>
+            <div class="wl-actions">
+              <button class="wl-icon-btn check" onclick="wlCycleStatus('${i._id}', '${i.kind}')" title="Change status">✓</button>
+              <button class="wl-icon-btn" onclick="wlEdit('${i._id}', '${i.kind}')" title="Edit">✎</button>
+              <button class="wl-icon-btn del" onclick="wlDelete('${i._id}', '${i.kind}')" title="Remove">✕</button>
+            </div>
+          </div>
+          <div class="wl-meta">
+            ${i.platform ? `<span class="wl-tag platform">${escapeHtml(i.platform)}</span>` : ''}
+            ${i.language ? `<span class="wl-tag">${escapeHtml(i.language)}</span>` : ''}
+            ${i.genre ? `<span class="wl-tag">${escapeHtml(i.genre)}</span>` : ''}
+            ${i.kind === 'pending' ? `<span class="wl-tag custom">Syncing…</span>` : ''}
+          </div>
+          ${i.notes ? `<div class="wl-notes">${escapeHtml(i.notes)}</div>` : ''}
+          <div class="wl-statusbtn" onclick="wlCycleStatus('${i._id}', '${i.kind}')">${statusLabel(i.status)} · tap to change</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function init() {
+    overrides = readLS(LS_OVERRIDES, {});
+    hidden = readLS(LS_HIDDEN, []);
+    pendingAdds = readLS(LS_PENDING, []);
+    const cached = readLS(LS_CACHE, null);
+    if (cached) { sheetItems = cached.rows; lastSynced = cached.syncedAt; }
+    render();
+    wlSyncFromSheet();
+  }
+
+  init();
+</script>
+</body>
+</html>
