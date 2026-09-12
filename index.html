@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Watch Tonight</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --navy: #1b2a4a;
+      --teal: #0f766e;
+      --gold: #c4a35a;
+      --cream: #f7f3ea;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e1d6;
+      --yes: #166534;
+      --yes-bg: #dcfce7;
+      --next: #92400e;
+      --next-bg: #fef3c7;
+      --watch: #1e40af;
+      --watch-bg: #dbeafe;
+      --pause: #5b21b6;
+      --pause-bg: #ede9fe;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      background: var(--cream);
+      color: var(--ink);
+    }
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 20px 20px 16px;
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    header p { margin: 0; color: #c9d2e3; font-size: 0.95rem; font-family: system-ui, sans-serif; }
+    main { max-width: 980px; margin: 0 auto; padding: 16px; }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    label { display: block; font-family: system-ui, sans-serif; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type="file"], select, input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: 15px system-ui, sans-serif;
+      background: #fff;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      font: 600 14px system-ui, sans-serif;
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      background: var(--navy);
+      color: #fff;
+    }
+    button.secondary { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+    button.ghost { background: transparent; color: var(--navy); border: 1px dashed var(--navy); }
+    .meta { font-family: system-ui, sans-serif; font-size: 0.85rem; color: var(--muted); margin: 0 0 10px; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .card h2 { margin: 0 0 6px; font-size: 1.15rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag {
+      font: 600 11px system-ui, sans-serif;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: var(--navy);
+    }
+    .tag.status-Next { background: var(--next-bg); color: var(--next); }
+    .tag.status-Watching { background: var(--watch-bg); color: var(--watch); }
+    .tag.status-Paused { background: var(--pause-bg); color: var(--pause); }
+    .why { margin: 8px 0 0; color: #374151; font-size: 0.95rem; }
+    .card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .card-actions button { padding: 7px 10px; font-size: 12px; }
+    .empty { padding: 28px 10px; text-align: center; color: var(--muted); }
+    .count { font-family: system-ui, sans-serif; font-weight: 700; color: var(--teal); }
+    .drop {
+      border: 2px dashed #b7b09f;
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      background: #fff;
+      font-family: system-ui, sans-serif;
+    }
+    .drop.over { border-color: var(--teal); background: #ecfdf8; }
+    footer { padding: 8px 16px 24px; color: var(--muted); font: 13px system-ui, sans-serif; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Watch Tonight</h1>
+    <p>Reads your planner spreadsheet. Excel stays the source of truth.</p>
+  </header>
+  <main>
+    <section class="panel" id="loadPanel">
+      <div class="drop" id="drop">
+        <strong>Drop the .xlsx here</strong> or choose it
+        <div style="margin-top:10px">
+          <input id="file" type="file" accept=".xlsx,.xlsm,.xls" />
+        </div>
+      </div>
+      <p class="meta" id="fileMeta" style="margin-top:10px">No file loaded yet. Use Personal_OTT_Watchlist_Planner.xlsx.</p>
+      <div class="row-actions">
+        <button id="reloadDemo" class="ghost" type="button">Need a reminder of the columns?</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="filters">
+        <div>
+          <label for="language">Language</label>
+          <select id="language"></select>
+        </div>
+        <div>
+          <label for="mood">Mood</label>
+          <select id="mood"></select>
+        </div>
+        <div>
+          <label for="who">Who with</label>
+          <select id="who"></select>
+        </div>
+        <div>
+          <label for="platform">Platform</label>
+          <select id="platform"></select>
+        </div>
+        <div>
+          <label for="runtime">Max minutes</label>
+          <input id="runtime" type="number" min="20" max="400" value="240" />
+        </div>
+        <div>
+          <label for="onlyPlayable">Only current subscriptions</label>
+          <select id="onlyPlayable">
+            <option value="yes" selected>Yes — hide other apps</option>
+            <option value="no">Show everything</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <p class="meta"><span class="count" id="count">0</span> titles you can press play on</p>
+    <div id="list"></div>
+
+    <section class="panel">
+      <strong style="font-family:system-ui,sans-serif">Paste a title</strong>
+      <p class="meta">Adds a row in memory. Download the Excel file when you are done.</p>
+      <div class="filters">
+        <div>
+          <label for="newTitle">Title</label>
+          <input id="newTitle" type="text" placeholder="Movie or series name" />
+        </div>
+        <div>
+          <label for="newYear">Year</label>
+          <input id="newYear" type="number" placeholder="2024" />
+        </div>
+        <div>
+          <label for="newType">Type</label>
+          <select id="newType"></select>
+        </div>
+        <div>
+          <label for="newLanguage">Language</label>
+          <select id="newLanguage"></select>
+        </div>
+        <div>
+          <label for="newPlatform">Platform</label>
+          <select id="newPlatform"></select>
+        </div>
+        <div>
+          <label for="newStatus">Status</label>
+          <select id="newStatus"></select>
+        </div>
+        <div>
+          <label for="newPriority">Priority</label>
+          <select id="newPriority"></select>
+        </div>
+        <div>
+          <label for="newMood">Mood</label>
+          <select id="newMood"></select>
+        </div>
+        <div>
+          <label for="newRuntime">Runtime min</label>
+          <input id="newRuntime" type="number" value="120" />
+        </div>
+        <div>
+          <label for="newWho">Who with</label>
+          <select id="newWho"></select>
+        </div>
+        <div>
+          <label for="newWhy">Why I added it</label>
+          <input id="newWhy" type="text" placeholder="Friend recommended / trailer" />
+        </div>
+      </div>
+      <div class="row-actions">
+        <button id="addTitle" type="button">Add title</button>
+      </div>
+    </section>
+
+    <div class="row-actions">
+      <button id="download" type="button">Download updated Excel</button>
+      <button id="reset" class="secondary" type="button">Clear filters</button>
+    </div>
+  </main>
+  <footer>The browser cannot overwrite the original file. Download the updated copy, or use app.py to save in place.</footer>
+
+<script>
+const COLS = {
+  title: "Title", year: "Year", type: "Type", language: "Language",
+  industry: "Industry", genre: "Genre", mood: "Mood", runtime: "Runtime min",
+  platform: "Platform", availability: "Availability", status: "Status",
+  priority: "Priority", who: "Who with", subtitles: "Subtitles",
+  why: "Why I added it", notes: "Notes", added: "Date added",
+  watched: "Date watched", rating: "My rating /10", onSub: "On a current sub?"
+};
+
+let workbook = null;
+let rows = [];
+let activePlatforms = new Set();
+let originalName = "Personal_OTT_Watchlist_Planner.xlsx";
+
+const $ = (id) => document.getElementById(id);
+
+function unique(values) {
+  return [...new Set(values.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))]
+    .map(String)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function fillSelect(id, values, extra = ["Any"]) {
+  const el = $(id);
+  const keep = extra.concat(values);
+  el.innerHTML = keep.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join("");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+function sheetToObjects(wb, name) {
+  const sheet = wb.Sheets[name];
+  if (!sheet) return [];
+  return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+}
+
+function parseSubscriptions(wb) {
+  const sheet = wb.Sheets["My Subscriptions"];
+  const set = new Set();
+  if (!sheet) return set;
+  const data = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+  data.forEach(r => {
+    const platform = r["Platform"];
+    const active = String(r["Active?"] || "").trim().toLowerCase();
+    if (platform && active === "yes") set.add(String(platform).trim());
+  });
+  return set;
+}
+
+function normalizeRow(r, idx) {
+  const platform = String(r[COLS.platform] || "").trim();
+  const status = String(r[COLS.status] || "").trim();
+  const onSubCell = String(r[COLS.onSub] || "").trim();
+  const onSub = onSubCell === "Yes" || activePlatforms.has(platform);
+  return {
+    idx,
+    title: String(r[COLS.title] || "").trim(),
+    year: r[COLS.year],
+    type: String(r[COLS.type] || "").trim(),
+    language: String(r[COLS.language] || "").trim(),
+    industry: String(r[COLS.industry] || "").trim(),
+    genre: String(r[COLS.genre] || "").trim(),
+    mood: String(r[COLS.mood] || "").trim(),
+    runtime: Number(r[COLS.runtime]) || "",
+    platform,
+    availability: String(r[COLS.availability] || "").trim(),
+    status,
+    priority: String(r[COLS.priority] || "").trim(),
+    who: String(r[COLS.who] || "").trim(),
+    subtitles: String(r[COLS.subtitles] || "").trim(),
+    why: String(r[COLS.why] || "").trim(),
+    notes: String(r[COLS.notes] || "").trim(),
+    onSub,
+    raw: r
+  };
+}
+
+function loadWorkbook(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    workbook = XLSX.read(e.target.result, { type: "array", cellDates: true });
+    if (!workbook.Sheets["Watchlist"]) {
+      alert("This file has no Watchlist sheet. Use the planner spreadsheet.");
+      return;
+    }
+    activePlatforms = parseSubscriptions(workbook);
+    const json = sheetToObjects(workbook, "Watchlist");
+    rows = json.map(normalizeRow).filter(r => r.title);
+    $("fileMeta").textContent = originalName + " · " + rows.length + " titles · " +
+      activePlatforms.size + " active subscriptions (" + [...activePlatforms].join(", ") + ")";
+    fillSelect("language", unique(rows.map(r => r.language)));
+    fillSelect("mood", unique(rows.map(r => r.mood)));
+    fillSelect("who", unique(rows.map(r => r.who)));
+    fillSelect("platform", unique(rows.map(r => r.platform)));
+    render();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function filtered() {
+  const language = $("language").value;
+  const mood = $("mood").value;
+  const who = $("who").value;
+  const platform = $("platform").value;
+  const runtime = Number($("runtime").value) || 240;
+  const onlyPlayable = $("onlyPlayable").value === "yes";
+  const live = ["Next up", "Watching", "Paused"];
+
+  return rows.filter(r => {
+    if (!live.includes(r.status) && $("onlyPlayable").dataset.mode !== "all") {
+      // default chooser: actionable statuses only
+      if (!live.includes(r.status)) return false;
+    }
+    if (onlyPlayable && !r.onSub) return false;
+    if (language !== "Any" && r.language !== language) return false;
+    if (mood !== "Any" && r.mood !== mood) return false;
+    if (who !== "Any" && r.who !== who) return false;
+    if (platform !== "Any" && r.platform !== platform) return false;
+    if (r.runtime && Number(r.runtime) > runtime) return false;
+    return true;
+  }).sort((a, b) => String(a.priority).localeCompare(String(b.priority)) || String(a.title).localeCompare(String(b.title)));
+}
+
+function render() {
+  const list = filtered();
+  $("count").textContent = list.length;
+  if (!rows.length) {
+    $("list").innerHTML = '<div class="empty">Load the Excel file to see titles.</div>';
+    return;
+  }
+  if (!list.length) {
+    $("list").innerHTML = '<div class="empty">Nothing matches. Loosen a filter, or promote Inbox titles to Next up in the spreadsheet.</div>';
+    return;
+  }
+  $("list").innerHTML = list.map(r => `
+    <article class="card">
+      <h2>${escapeHtml(r.title)}${r.year ? ` <span style="color:#9ca3af;font-weight:400">(${escapeHtml(r.year)})</span>` : ""}</h2>
+      <div class="tags">
+        <span class="tag status-${escapeAttr(r.status.split(" ")[0])}">${escapeHtml(r.status)}</span>
+        ${r.priority ? `<span class="tag">${escapeHtml(r.priority)}</span>` : ""}
+        ${r.language ? `<span class="tag">${escapeHtml(r.language)}</span>` : ""}
+        ${r.platform ? `<span class="tag">${escapeHtml(r.platform)}</span>` : ""}
+        ${r.runtime ? `<span class="tag">${escapeHtml(r.runtime)} min</span>` : ""}
+        ${r.who ? `<span class="tag">${escapeHtml(r.who)}</span>` : ""}
+        ${r.mood ? `<span class="tag">${escapeHtml(r.mood)}</span>` : ""}
+      </div>
+      ${r.why ? `<p class="why">${escapeHtml(r.why)}</p>` : ""}
+      ${r.notes ? `<p class="why" style="color:#6b7280">${escapeHtml(r.notes)}</p>` : ""}
+      <div class="card-actions">
+        <button data-i="${r.idx}" data-s="Watching">Watching</button>
+        <button data-i="${r.idx}" data-s="Watched">Watched</button>
+        <button class="secondary" data-i="${r.idx}" data-s="Paused">Paused</button>
+        <button class="ghost" data-i="${r.idx}" data-s="Skip">Skip</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+function setStatus(idx, status) {
+  const row = rows.find(r => r.idx === idx);
+  if (!row) return;
+  row.status = status;
+  row.raw[COLS.status] = status;
+  if (status === "Watched") {
+    const today = new Date().toISOString().slice(0, 10);
+    row.raw[COLS.watched] = today;
+  }
+  render();
+}
+
+function downloadUpdated() {
+  if (!workbook) {
+    alert("Load a spreadsheet first.");
+    return;
+  }
+  const json = rows.map(r => {
+    const out = Object.assign({}, r.raw);
+    out[COLS.status] = r.status;
+    return out;
+  });
+  const newSheet = XLSX.utils.json_to_sheet(json, { header: Object.values(COLS) });
+  workbook.Sheets["Watchlist"] = newSheet;
+  XLSX.writeFile(workbook, originalName.replace(/\.xlsx$/i, "") + "-updated.xlsx");
+}
+
+$("file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  originalName = file.name;
+  loadWorkbook(file);
+});
+
+["language","mood","who","platform","runtime","onlyPlayable"].forEach(id => {
+  $(id).addEventListener("input", render);
+  $(id).addEventListener("change", render);
+});
+
+$("list").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-i]");
+  if (!btn) return;
+  setStatus(Number(btn.dataset.i), btn.dataset.s);
+});
+
+$("download").addEventListener("click", downloadUpdated);
+$("reset").addEventListener("click", () => {
+  $("language").value = "Any";
+  $("mood").value = "Any";
+  $("who").value = "Any";
+  $("platform").value = "Any";
+  $("runtime").value = 240;
+  $("onlyPlayable").value = "yes";
+  render();
+});
+
+$("reloadDemo").addEventListener("click", () => {
+  alert("Needed sheets:\n• Watchlist — Title, Language, Platform, Status, Priority, Mood, Runtime min, Who with\n• My Subscriptions — Platform, Active?\n\nStatus values the app treats as watchable: Next up, Watching, Paused.");
+});
+
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => {
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  originalName = file.name;
+  loadWorkbook(file);
+});
+
+const TYPES = ["Movie","Series","Miniseries","Documentary","Anime","Stand-up"];
+const LANGS = ["English","Hindi","Telugu","Tamil","Malayalam","Chinese","Korean","Japanese","Thai","Spanish (Mexican)","Other"];
+const MOODS = ["Easy / comfort","Date night","Family night","Mind-bending","High energy","Slow / prestige","Laugh out loud","Scare me","Background-friendly"];
+const STATUSES = ["Inbox","Next up","Watching","Paused","Watched","Dropped","Skip"];
+const PRIORITIES = ["1 — Tonight","2 — This week","3 — This month","4 — Someday"];
+const WHOS = ["Solo","Partner","Family","Friends","Anyone"];
+const PLATS = ["Netflix","Prime Video","Sun NXT","Hulu","Disney+","HBO Max","Simply South","Starz","Peacock","Physical / file","Other"];
+
+function fillFixed(id, values, selected) {
+  $(id).innerHTML = values.map(v => `<option${v===selected?' selected':''}>${escapeHtml(v)}</option>`).join("");
+}
+fillFixed("newType", TYPES, "Movie");
+fillFixed("newLanguage", LANGS, "English");
+fillFixed("newPlatform", PLATS, "Netflix");
+fillFixed("newStatus", STATUSES, "Next up");
+fillFixed("newPriority", PRIORITIES, "2 — This week");
+fillFixed("newMood", MOODS, "Easy / comfort");
+fillFixed("newWho", WHOS, "Anyone");
+
+$("addTitle").addEventListener("click", () => {
+  if (!workbook) {
+    alert("Load the spreadsheet first.");
+    return;
+  }
+  const title = $("newTitle").value.trim();
+  if (!title) {
+    alert("Title is required.");
+    return;
+  }
+  const raw = {};
+  raw[COLS.title] = title;
+  raw[COLS.year] = $("newYear").value;
+  raw[COLS.type] = $("newType").value;
+  raw[COLS.language] = $("newLanguage").value;
+  raw[COLS.industry] = "";
+  raw[COLS.genre] = "";
+  raw[COLS.mood] = $("newMood").value;
+  raw[COLS.runtime] = $("newRuntime").value;
+  raw[COLS.platform] = $("newPlatform").value;
+  raw[COLS.availability] = activePlatforms.has($("newPlatform").value) ? "On a subscription" : "Unknown";
+  raw[COLS.status] = $("newStatus").value;
+  raw[COLS.priority] = $("newPriority").value;
+  raw[COLS.who] = $("newWho").value;
+  raw[COLS.subtitles] = "English subs";
+  raw[COLS.why] = $("newWhy").value.trim();
+  raw[COLS.notes] = "";
+  raw[COLS.added] = new Date().toISOString().slice(0, 10);
+  raw[COLS.watched] = "";
+  raw[COLS.rating] = "";
+  raw[COLS.onSub] = activePlatforms.has($("newPlatform").value) ? "Yes" : "No";
+  const row = normalizeRow(raw, rows.length);
+  rows.push(row);
+  $("newTitle").value = "";
+  $("newWhy").value = "";
+  fillSelect("language", unique(rows.map(r => r.language)));
+  fillSelect("mood", unique(rows.map(r => r.mood)));
+  fillSelect("who", unique(rows.map(r => r.who)));
+  fillSelect("platform", unique(rows.map(r => r.platform)));
+  $("fileMeta").textContent = originalName + " · " + rows.length + " titles (unsaved add — download when finished)";
+  render();
+});
+
+fillSelect("language", []);
+fillSelect("mood", []);
+fillSelect("who", []);
+fillSelect("platform", []);
+render();
+</script>
+</body>
+</html>
