@@ -78,6 +78,20 @@
   .wl-form-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
 
   .wl-filters { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; padding-bottom: 4px; }
+  .wl-search {
+    margin-top: 14px; position: relative;
+  }
+  .wl-search input {
+    width: 100%; background: var(--surface); border: 1px solid #313A63; color: var(--text);
+    border-radius: 8px; padding: 10px 34px 10px 12px; font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  .wl-search input::placeholder { color: var(--muted); }
+  .wl-search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;
+    display: none;
+  }
+  .wl-search-clear.show { display: block; }
   .wl-pill {
     flex: none; padding: 6px 12px; border-radius: 20px; background: var(--surface);
     color: var(--muted); font-size: 12.5px; cursor: pointer; border: 1px solid transparent; white-space: nowrap;
@@ -126,6 +140,7 @@
       <button class="wl-refresh-btn" onclick="wlSyncFromSheet()">🔄 Refresh</button>
     </div>
     <button class="wl-addbtn" onclick="wlToggleForm()">+ Add a film (saves to sheet)</button>
+    <button class="wl-addbtn secondary" id="wl-bulk-btn" onclick="wlBulkImport()">⬇ Import latest flyer titles</button>
 
     <div class="wl-form" id="wl-form">
       <p class="wl-form-note" id="wl-form-context"></p>
@@ -163,6 +178,8 @@
             <option value="Hulu">Hulu</option>
             <option value="SunNxt">SunNxt</option>
             <option value="HBOMax">HBOMax</option>
+            <option value="Sony LIV">Sony LIV</option>
+            <option value="ETV Win">ETV Win</option>
             <option value="Peacock">Peacock</option>
           </select>
         </div>
@@ -192,6 +209,10 @@
     </div>
   </div>
 
+  <div class="wl-search">
+    <input id="wl-search-input" type="text" placeholder="Search title, language, platform, notes…" oninput="wlOnSearch()" />
+    <button class="wl-search-clear" id="wl-search-clear" onclick="wlClearSearch()">✕</button>
+  </div>
   <div class="wl-filters" id="wl-filters"></div>
   <div class="wl-list" id="wl-list"></div>
 
@@ -210,9 +231,232 @@
   let hidden = [];
   let editingId = null;
   let activeFilter = { type: 'status', value: 'to_watch' };
+  let searchQuery = '';
   let lastSynced = null;
 
   const keyOf = (title) => (title || '').trim().toLowerCase();
+
+  // Titles from the latest flyer, queued for a one-tap bulk write to the sheet.
+  const BULK_IMPORT_QUEUE = [
+    { title: "Single Salma", language: "Hindi", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Chinna Chinna Aasai", language: "Malayalam", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "The Devil Wears Prada 2", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "Also in: Eng & Hin" },
+    { title: "The Moment", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Find Your Friends", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Heart Beat", language: "Tamil", platform: "Jio Hotstar", genre: "Series - S3", notes: "" },
+    { title: "Colin From Accounts", language: "English", platform: "Jio Hotstar", genre: "Series - S3", notes: "" },
+    { title: "Can You Keep A Secret", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Furious", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Sheriff Country", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "The Proud Family: Louder And Prouder", language: "English", platform: "Jio Hotstar", genre: "Series - S4", notes: "" },
+    { title: "Britain's Most Notorious Crime Investigations", language: "English", platform: "Jio Hotstar", genre: "Docu-Series - S1", notes: "" },
+    { title: "The Legend of Karna", language: "Hindi", platform: "Sony LIV", genre: "Series - S1", notes: "Also in: Hin, Tel, Tam, Kan, Mal, Ben & Mar" },
+    { title: "Balan: The Boy", language: "Malayalam", platform: "Zee 5", genre: "Movie", notes: "Also in: Mal, Tel, Tam & Kan" },
+    { title: "Bhuvanam Gaganam", language: "Other", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Hai Jawani Toh Ishq Hona Hai", language: "Hindi", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Objection My Lord", language: "Telugu", platform: "Zee 5", genre: "Series - S1", notes: "" },
+    { title: "DC Rave", language: "Tamil", platform: "SunNxt", genre: "Musical Concert", notes: "" },
+    { title: "Second Marriage", language: "Telugu", platform: "ETV Win", genre: "Series - S1", notes: "" },
+    { title: "Azadi 501", language: "Telugu", platform: "Aha", genre: "Series - S1", notes: "" },
+    { title: "Deewana", language: "Tamil", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Rao Bahadur", language: "Telugu", platform: "Netflix", genre: "Movie", notes: "Also in: Tel, Tam, Kan, Mal & Hin" },
+    { title: "Gatta Kusthi 2", language: "Tamil", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Malaikat Malam", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Black Bag", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Wild Sing", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Shake, Rattle And Roll: Evil Origins", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "The Bombing of Pan Am 103", language: "English", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Win X Club: The Magic Is Back", language: "English", platform: "Netflix", genre: "Series - S2", notes: "" },
+    { title: "Forbidden Woman", language: "Other", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Final Project", language: "Other", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Wrath", language: "Other", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "The Idaho Murders: College Nightmare", language: "English", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Instadocs: The Prediction Games", language: "English", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Police Complaint", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Love Oh Love", language: "Tamil", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "The Devil's Mouth", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "Also in: Tel, Tam, Kan, Mal & Hin" },
+    { title: "Locked", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng, Tel, Tam & Hin" },
+    { title: "Solo Mio", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Ghost Train", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "Also in: Kor, Tel, Tam & Hin" },
+    { title: "Batman: Caped Crusader", language: "English", platform: "Prime Video", genre: "Series - S2", notes: "Also in: Eng & Hin" },
+    { title: "Dear X", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "Also in: Kor & Hin" },
+    { title: "Law And The City", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "Also in: Kor & Hin" },
+    { title: "Idhayam Murali", language: "Tamil", platform: "Netflix", genre: "Movie", notes: "Also in: Tam, Tel, Kan, Mal & Hin" },
+    { title: "Main Vaapas Aaunga", language: "Hindi", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Mickey 17", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "The Last House", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Storm On Sesame Street", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Doctor-X", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Manila's Finest", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Operation Safed Sagar", language: "Hindi", platform: "Netflix", genre: "Series - S1", notes: "Also in: Hin, Tel, Tam, Kan, Mal & Eng" },
+    { title: "My Life With The Walter Boys", language: "English", platform: "Netflix", genre: "Series - S3", notes: "" },
+    { title: "One Hundred Years of Solitude", language: "English", platform: "Netflix", genre: "Series - S2", notes: "" },
+    { title: "Death Inc.", language: "Other", platform: "Netflix", genre: "Series - S4", notes: "" },
+    { title: "1670", language: "Other", platform: "Netflix", genre: "Series - S3", notes: "" },
+    { title: "Black Trick: The Lawyer Who Controls Justice", language: "Asian", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Big Chicken: A fast Food Conspiracy", language: "English", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Inside The Trustor Scandal", language: "Other", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Let's Marry Harry", language: "English", platform: "Netflix", genre: "Reality Series - S1", notes: "" },
+    { title: "Badly In Love", language: "Asian", platform: "Netflix", genre: "Reality Series - S2", notes: "" },
+    { title: "Uyir", language: "Malayalam", platform: "Jio Hotstar", genre: "Movie", notes: "Also in: Mal, Tel, Tam, Kan & Hin" },
+    { title: "The Taj Story", language: "Hindi", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "The Super Mario Galaxy Movie", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "The Bride", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Beast", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Love Lies Bleeding", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "The Shards", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Possession", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Wizards Beyond Waverly Place", language: "English", platform: "Jio Hotstar", genre: "Series - S3", notes: "" },
+    { title: "Star Wars: Visions Presents - The Ninth Jedi", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Kamen Rider GAVV", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Monster of God", language: "English", platform: "Jio Hotstar", genre: "Docu-Series - S1", notes: "" },
+    { title: "Cocktail 2", language: "Hindi", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Don't Say Good Luck", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "What A Girl Wants", language: "English", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Drop", language: "English", platform: "Netflix", genre: "Movie", notes: "Also in: Eng & Hin" },
+    { title: "My Best Friend, His Girlfriend & Me", language: "Other", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "To The Max", language: "Other", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Daddy Is In Trouble", language: "Other", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Nando Between Two Worlds", language: "Other", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "This That And Everything In Between", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Tires", language: "English", platform: "Netflix", genre: "Series - S3", notes: "Also in: Eng & Hin" },
+    { title: "My Brilliant Career", language: "English", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Umthetho", language: "English", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Moria", language: "Other", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Mourinho", language: "English", platform: "Netflix", genre: "", notes: "" },
+    { title: "Conversations With A Killer", language: "English", platform: "Netflix", genre: "Docu-Series - S1", notes: "" },
+    { title: "A Child of My Own", language: "Other", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Jumper", language: "Hindi", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Camp Rock 3", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Hunting Jessica Brok", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Call My Manager", language: "Asian", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Laziness Saves", language: "Hindi", platform: "Jio Hotstar", genre: "Documentary", notes: "" },
+    { title: "Travis Baker: Louder Than Fear", language: "English", platform: "Jio Hotstar", genre: "Documentary", notes: "" },
+    { title: "The Real Housewives: Ultimate Girls Trip", language: "English", platform: "Jio Hotstar", genre: "Reality Series - S5", notes: "" },
+    { title: "Bharat Bhagya Vidhata", language: "Hindi", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Nibba Nibbi", language: "Other", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Legacy", language: "Hindi", platform: "Zee 5", genre: "Reality Series", notes: "" },
+    { title: "Vadhala", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Heartin", language: "Tamil", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Aroopi", language: "Malayalam", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Moda Kavida Vaatavarana", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Cup Bashi", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Ghabadkund", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Vaanki Chuki Love Story", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "In The Grey", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng, Tel, Tam & Hin" },
+    { title: "The Crow", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Vampires of the Velvet Lounge", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Escape", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng & Hin" },
+    { title: "Wrangler", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "Also in: Kor & Hin" },
+    { title: "Mystery Arena", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Green Snake", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Reacher", language: "English", platform: "Prime Video", genre: "Series - S4", notes: "Also in: Eng, Tel, Tam, Kan, Mal & Hin" },
+    { title: "The Legend of Kitchen Soldier", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "Also in: Kor, Tel, Tam & Hin" },
+    { title: "Fifties Professionals", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "Also in: Kor, Tel, Tam & Hin" },
+    { title: "The Traitors", language: "Hindi", platform: "Prime Video", genre: "Reality Series - S2", notes: "" },
+    { title: "A Brief History of Cricket Down Under: The 80s", language: "English", platform: "Prime Video", genre: "Docu-Series - S1", notes: "" },
+    { title: "Mr Work From Home", language: "Telugu", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Forest Guard", language: "Telugu", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Hari Chandra Katha", language: "Telugu", platform: "Aha", genre: "Series - S1", notes: "" },
+    { title: "September 21", language: "Other", platform: "SunNxt", genre: "Movie", notes: "" },
+    { title: "Women In Blue", language: "Other", platform: "Apple TV", genre: "Series - S2", notes: "" },
+    { title: "Oh Sukumari", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "Also in: Tel, Tam, Kan & Mal" },
+    { title: "MRP: Neekentha Naakentha", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Revolver Rinko", language: "Malayalam", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "The Maharashtra Files", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Governor", language: "Hindi", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Maggi Pusthaka", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Presence", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Colours of Time", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Beast Race", language: "Other", platform: "Prime Video", genre: "Movie", notes: "Also in: Por, Eng & Hin" },
+    { title: "Island Python", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Vadhandhi", language: "Tamil", platform: "Prime Video", genre: "Series - S2", notes: "Also in: Tam, Tel & Hin" },
+    { title: "Special Ops: Lioness", language: "English", platform: "Prime Video", genre: "Series - S3", notes: "" },
+    { title: "Sterling Point", language: "English", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "The Judge Returns", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "My Bias My Boss", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "Way Back Love", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "The Ghost In The Shell", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "Guardians of the Dafeng", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "Lenin", language: "Telugu", platform: "Zee 5", genre: "Movie", notes: "Also in: Tel, Tam, Kan & Mal" },
+    { title: "Nooru Saami", language: "Tamil", platform: "Zee 5", genre: "Movie", notes: "Also in: Tam, Tel, Kan & Mal" },
+    { title: "Tumbadchi Manjula", language: "Hindi", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Dark Giant", language: "Tamil", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Sathyathil Sambhavichathu", language: "Malayalam", platform: "SunNxt", genre: "Movie", notes: "" },
+    { title: "Ted Lasso", language: "English", platform: "Apple TV", genre: "Series - S4", notes: "" },
+    { title: "Backrooms", language: "English", platform: "Sony LIV", genre: "Movie", notes: "" },
+    { title: "Srinivasa Mangapuram", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "Also in: Tel, Tam, Kan, Mal & Hin" },
+    { title: "Mister Middle Class", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Raja The Raja", language: "Telugu", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Dark", language: "Tamil", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Bol Rani Bol", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Beast", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng, Tel, Tam & Hin" },
+    { title: "Stolen Girl", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng, Tel, Tam & Hin" },
+    { title: "Is God Is", language: "English", platform: "Prime Video", genre: "Movie", notes: "Also in: Eng & Hin" },
+    { title: "Our Hero, Balthazar", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Sidelined 2: Intercepted", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Eye For An Eye", language: "English", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Back To The 90s", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Six Jours", language: "Other", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Somebody", language: "Asian", platform: "Prime Video", genre: "Movie", notes: "" },
+    { title: "Cleanup Company", language: "Hindi", platform: "Prime Video", genre: "Series - S1", notes: "" },
+    { title: "From Old Country Bumpkin to Master Swordsman", language: "English", platform: "Prime Video", genre: "Series - S2", notes: "" },
+    { title: "Mad Concrete Dreams", language: "Asian", platform: "Prime Video", genre: "Series - S1", notes: "Also in: Kor, Tel, Tam & Hin" },
+    { title: "Novak Djokovic: The Wolf in Winter", language: "English", platform: "Prime Video", genre: "Documentary", notes: "" },
+    { title: "Sanjeev", language: "Telugu", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Sweety Naughty Crazy", language: "Tamil", platform: "Aha", genre: "Movie", notes: "" },
+    { title: "Pyaar Prema Kalyanam", language: "Tamil", platform: "Netflix", genre: "Movie", notes: "Also in: Tam, Tel, Kan, Mal & Hin" },
+    { title: "Facing El Chapo", language: "Other", platform: "Netflix", genre: "Movie", notes: "Also in: Spa, Eng & Hin" },
+    { title: "Here The Whole Time", language: "Other", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "5 Bomoh", language: "Asian", platform: "Netflix", genre: "Movie", notes: "" },
+    { title: "Outer Banks", language: "English", platform: "Netflix", genre: "Series - S5", notes: "" },
+    { title: "Blood Sacrifice", language: "Other", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "S & X", language: "Asian", platform: "Netflix", genre: "Series - S1", notes: "" },
+    { title: "Freefall: A Reckoning For Boeing", language: "English", platform: "Netflix", genre: "Documentary", notes: "" },
+    { title: "Love Is Blind UK", language: "English", platform: "Netflix", genre: "Reality Series - S3", notes: "" },
+    { title: "Take A Hike", language: "Asian", platform: "Netflix", genre: "Reality Series - S1", notes: "" },
+    { title: "Welcome To The Jungle", language: "Hindi", platform: "Jio Hotstar", genre: "Movie", notes: "" },
+    { title: "Midwinter Break", language: "English", platform: "Jio Hotstar", genre: "Movie", notes: "Also in: Eng & Hin" },
+    { title: "Lanterns", language: "English", platform: "Jio Hotstar", genre: "Series - S1", notes: "" },
+    { title: "Average Joe", language: "English", platform: "Jio Hotstar", genre: "Series - S2", notes: "" },
+    { title: "Lion", language: "English", platform: "Jio Hotstar", genre: "Docu-Series - S1", notes: "" },
+    { title: "Disney World Builders", language: "English", platform: "Jio Hotstar", genre: "Documentary", notes: "" },
+    { title: "Jana Nayagan", language: "Tamil", platform: "Zee 5", genre: "Movie", notes: "Also in: Tam, Tel, Kan & Mal" },
+    { title: "The Great Grand Superhero", language: "Hindi", platform: "Zee 5", genre: "Movie", notes: "" },
+    { title: "Still Water", language: "English", platform: "Apple TV", genre: "Series - S5", notes: "" },
+    { title: "The Dynasty: U Conn Huskies", language: "English", platform: "Apple TV", genre: "Docu-Series - S1", notes: "" },
+    { title: "Chennai Love Story", language: "Telugu", platform: "Sony LIV", genre: "Movie", notes: "Also in: Tel, Tam, Kan, Mal & Hin" }
+    ];
+
+  async function wlBulkImport() {
+    const btn = document.getElementById('wl-bulk-btn');
+    const original = btn.textContent;
+    const existingKeys = new Set([
+      ...sheetItems.map(i => keyOf(i.title)),
+      ...pendingAdds.map(p => keyOf(p.title))
+    ]);
+    const toAdd = BULK_IMPORT_QUEUE.filter(item => !existingKeys.has(keyOf(item.title)));
+    if (toAdd.length === 0) {
+      btn.textContent = 'Already up to date';
+      setTimeout(() => { btn.textContent = original; }, 2500);
+      return;
+    }
+    btn.disabled = true;
+    for (let idx = 0; idx < toAdd.length; idx++) {
+      const item = toAdd[idx];
+      btn.textContent = `Sending ${idx + 1} of ${toAdd.length}…`;
+      const fields = { ...item, priority: 'medium' };
+      pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
+      writeLS(LS_PENDING, pendingAdds);
+      wlWriteToSheet({ action: 'add', ...fields, status: 'to_watch' });
+      render();
+      // small delay between requests so we don't fire 28 POSTs simultaneously
+      await new Promise(r => setTimeout(r, 250));
+    }
+    btn.disabled = false;
+    btn.textContent = `✓ Sent ${toAdd.length} titles`;
+    setTimeout(() => { btn.textContent = original; }, 3000);
+  }
 
   function readLS(key, fallback) {
     try {
@@ -469,12 +713,34 @@
     render();
   }
 
+  function wlOnSearch() {
+    searchQuery = document.getElementById('wl-search-input').value.trim().toLowerCase();
+    document.getElementById('wl-search-clear').classList.toggle('show', searchQuery.length > 0);
+    render();
+  }
+
+  function wlClearSearch() {
+    searchQuery = '';
+    document.getElementById('wl-search-input').value = '';
+    document.getElementById('wl-search-clear').classList.remove('show');
+    render();
+  }
+
+  function matchesSearch(item) {
+    if (!searchQuery) return true;
+    const haystack = [item.title, item.language, item.platform, item.genre, item.notes]
+      .join(' ').toLowerCase();
+    return haystack.includes(searchQuery);
+  }
+
   function filteredItems(all) {
-    if (activeFilter.type === 'all') return all;
-    if (activeFilter.type === 'status') return all.filter(i => i.status === activeFilter.value);
-    if (activeFilter.type === 'platform') return all.filter(i => i.platform === activeFilter.value);
-    if (activeFilter.type === 'language') return all.filter(i => i.language === activeFilter.value);
-    return all;
+    const bySearch = all.filter(matchesSearch);
+    if (searchQuery) return bySearch; // while searching, show matches across all statuses/filters
+    if (activeFilter.type === 'all') return bySearch;
+    if (activeFilter.type === 'status') return bySearch.filter(i => i.status === activeFilter.value);
+    if (activeFilter.type === 'platform') return bySearch.filter(i => i.platform === activeFilter.value);
+    if (activeFilter.type === 'language') return bySearch.filter(i => i.language === activeFilter.value);
+    return bySearch;
   }
 
   const priorityRank = { high: 0, medium: 1, low: 2 };
@@ -499,7 +765,9 @@
     const listEl = document.getElementById('wl-list');
 
     if (list.length === 0) {
-      listEl.innerHTML = `<div class="wl-empty">Nothing here yet.<br/>Tap "+ Add a film" or switch filters.</div>`;
+      listEl.innerHTML = searchQuery
+        ? `<div class="wl-empty">No matches for "${escapeHtml(searchQuery)}".</div>`
+        : `<div class="wl-empty">Nothing here yet.<br/>Tap "+ Add a film" or switch filters.</div>`;
       return;
     }
 
