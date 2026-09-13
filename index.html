@@ -585,17 +585,30 @@
     };
 
     if (editingId && editingId.startsWith('sheet:')) {
-      // editing a sheet-sourced row -> save locally as override AND push update to the sheet
+      // editing a sheet-sourced row -> save locally as override AND push full update to the sheet
       const tKey = editingId.slice(6);
-      overrides[tKey] = { ...(overrides[tKey] || {}), priority: fields.priority, notes: fields.notes };
+      overrides[tKey] = {
+        ...(overrides[tKey] || {}),
+        priority: fields.priority,
+        notes: fields.notes,
+        platform: fields.platform,
+        language: fields.language,
+        genre: fields.genre
+      };
       writeLS(LS_OVERRIDES, overrides);
-      wlWriteToSheet({ action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes });
+      wlWriteToSheet({
+        action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes,
+        platform: fields.platform, language: fields.language, genre: fields.genre
+      });
     } else if (editingId && editingId.startsWith('pending:')) {
       // editing an item we already sent but haven't seen confirmed yet
       const idx = pendingAdds.findIndex(p => p.title === editingId.slice(8));
       if (idx > -1) pendingAdds[idx] = { ...pendingAdds[idx], ...fields };
       writeLS(LS_PENDING, pendingAdds);
-      wlWriteToSheet({ action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes });
+      wlWriteToSheet({
+        action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes,
+        platform: fields.platform, language: fields.language, genre: fields.genre
+      });
     } else {
       // brand new item -> add locally right away, and push to the sheet
       pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
@@ -618,7 +631,7 @@
     document.getElementById('f-priority').value = item.priority;
     document.getElementById('f-notes').value = item.notes;
     document.getElementById('wl-form-context').textContent = kind === 'sheet'
-      ? "Priority and notes save straight to your sheet. Title/language/platform are best edited there directly."
+      ? "Changes here save straight to your sheet by matching the title — if you also rename the title, save that separately after, since edits are matched by the old title."
       : "This was just added and is syncing to your sheet — should be fully confirmed within a few minutes.";
     document.getElementById('wl-form').classList.add('open');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -675,9 +688,9 @@
       return {
         _id: 'sheet:' + tKey,
         title: i.title,
-        language: i.language,
-        platform: i.platform,
-        genre: i.genre,
+        language: ov.language || i.language,
+        platform: ov.platform || i.platform,
+        genre: ov.genre !== undefined ? ov.genre : i.genre,
         priority: ov.priority || i.priority || 'medium',
         notes: ov.notes !== undefined ? ov.notes : i.notes,
         status: ov.status || i.status || 'to_watch',
