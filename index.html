@@ -140,6 +140,21 @@
     margin-top: 10px; display: inline-block; font-size: 11.5px; padding: 5px 10px; border-radius: 6px;
     background: var(--surface-raised); color: var(--text); border: 1px solid #313A63; cursor: pointer;
   }
+
+  /* TMDB lookup, posters, streaming */
+  .wl-lookup-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .wl-suggest { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .wl-sug { display: flex; gap: 10px; align-items: center; background: var(--bg); border: 1px solid #313A63; border-radius: 8px; padding: 6px; cursor: pointer; }
+  .wl-sug img, .wl-sug .noimg { width: 34px; height: 51px; border-radius: 4px; object-fit: cover; background: var(--surface-raised); flex: none; }
+  .wl-sug-t { font-size: 13px; }
+  .wl-sug-m { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .wl-stream-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  .wl-stream-pick:empty { display: none; }
+  .wl-poster { width: 52px; height: 78px; border-radius: 5px; object-fit: cover; flex: none; margin: 12px 0 12px 12px; align-self: flex-start; background: var(--surface-raised); display: block; }
+  .wl-tag.rating { color: #E8C468; }
+  .wl-stream { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .wl-stream b { color: var(--text); font-weight: 500; }
+  .wl-attrib { margin-top: 28px; font-size: 10.5px; color: var(--muted); line-height: 1.5; text-align: center; }
 </style>
 </head>
 <body>
@@ -149,15 +164,51 @@
     <div class="wl-sync" id="wl-sync">
       <span id="wl-sync-text">Syncing…</span>
       <button class="wl-refresh-btn" onclick="wlSyncFromSheet()">🔄 Refresh</button>
+      <button class="wl-refresh-btn" id="wl-settings-btn" onclick="wlToggleSettings()">⚙ Set up movie details</button>
     </div>
     <button class="wl-addbtn" onclick="wlToggleForm()">+ Add a film (saves to sheet)</button>
     <button class="wl-addbtn secondary" id="wl-bulk-btn" onclick="wlBulkImport()">⬇ Import latest flyer titles</button>
+
+    <div class="wl-form" id="wl-settings">
+      <p class="wl-form-note" id="wl-settings-note"></p>
+      <div>
+        <label>TMDB API key or read-access token</label>
+        <input id="s-key" type="password" autocomplete="off" placeholder="Paste your TMDB key or read-access token" />
+      </div>
+      <div>
+        <label>Country for streaming info</label>
+        <select id="s-country">
+          <option value="IN">India</option>
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="CA">Canada</option>
+          <option value="AU">Australia</option>
+          <option value="AE">United Arab Emirates</option>
+          <option value="SG">Singapore</option>
+          <option value="MY">Malaysia</option>
+          <option value="NZ">New Zealand</option>
+          <option value="DE">Germany</option>
+          <option value="FR">France</option>
+          <option value="ZA">South Africa</option>
+        </select>
+      </div>
+      <div class="wl-formbtns">
+        <button class="wl-cancel" onclick="wlClearTmdbCache()">Clear saved details</button>
+        <button class="wl-save" onclick="wlSaveSettings()">Save</button>
+      </div>
+    </div>
 
     <div class="wl-form" id="wl-form">
       <p class="wl-form-note" id="wl-form-context"></p>
       <div>
         <label>Title</label>
-        <input id="f-title" placeholder="e.g. Paatal Lok" />
+        <input id="f-title" placeholder="e.g. Paatal Lok" oninput="wlTitleTyped()" />
+        <div class="wl-lookup-row">
+          <button type="button" class="wl-refresh-btn" onclick="wlLookup()">🔍 Find on TMDB</button>
+          <span class="wl-form-note" id="wl-lookup-status"></span>
+        </div>
+        <div class="wl-suggest" id="wl-suggest"></div>
+        <div class="wl-stream-pick" id="wl-stream-pick"></div>
       </div>
       <div class="wl-row">
         <div>
@@ -262,6 +313,7 @@
   <div class="wl-fpanel" id="wl-fpanel"></div>
   <div class="wl-result-count" id="wl-result-count"></div>
   <div class="wl-list" id="wl-list"></div>
+  <div class="wl-attrib">Movie details from TMDB. Streaming availability data provided by JustWatch via TMDB.<br/>This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
 
 <script>
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOxZJiwrf5qM-XNXrr6HgX0W3BoLpitMDTO4JTNr1h7DRy51L_9NI18TMsuBGULluIFWDs3RAq2S-H/pub?gid=0&single=true&output=csv";
@@ -460,6 +512,7 @@
     ['f-lang', 'f-platform', 'f-type', 'f-genre'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('f-priority').value = 'medium';
     document.getElementById('wl-form-context').textContent = '';
+    clearLookupUI();
   }
 
   function wlToggleForm() {
@@ -513,6 +566,11 @@
       writeLS(LS_PENDING, pendingAdds);
       wlWriteToSheet({ action: 'add', ...sheetPayload(fields), status: 'To Watch' });
     }
+    if (formMatch) {
+      tmdbCache[keyOf(fields.title)] = { ...formMatch, manual: true };
+      saveTmdbCacheSoon();
+      formMatch = null;
+    }
     editingId = null;
     document.getElementById('wl-form').classList.remove('open');
     render();
@@ -522,6 +580,7 @@
     const item = getMergedItems().find(i => i._id === id);
     if (!item) return;
     editingId = id;
+    clearLookupUI();
     document.getElementById('f-title').value = item.title;
     document.getElementById('f-lang').value = item.language || '';
     document.getElementById('f-platform').value = item.platform || '';
@@ -684,12 +743,17 @@
       all.filter(i => i.status === 'watched').length + ' watched · ' + all.length + ' total';
 
     renderFilterUI(all);
+    document.getElementById('wl-settings-btn').textContent =
+      !tmdbKey() ? '⚙ Set up movie details' : tmdbAuthBad ? '⚠ Check TMDB key' : '⚙ Movie details';
 
     const list = all.filter(matchesFilters).sort((a, b) =>
       (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1)
     );
+    enrichVisible(list);
+    const loading = enrichQueue.length + enrichActive;
     document.getElementById('wl-result-count').textContent =
-      all.length ? 'Showing ' + list.length + ' of ' + all.length : '';
+      all.length ? 'Showing ' + list.length + ' of ' + all.length +
+        (loading ? ' · loading posters & streaming info (' + loading + ' left)' : '') : '';
 
     const listEl = document.getElementById('wl-list');
     if (list.length === 0) {
@@ -703,8 +767,23 @@
     listEl.innerHTML = list.map(i => {
       const pr = priorityRank[i.priority] !== undefined ? i.priority : 'medium';
       const ref = 'data-id="' + escAttr(i._id) + '" data-kind="' + i.kind + '"';
+      const te = tmdbCache[keyOf(i.title)];
+      const hasTe = !!(te && !te.miss);
+      const posterHtml = hasTe && te.poster
+        ? '<a href="https://www.themoviedb.org/' + te.mt + '/' + te.id + '" target="_blank" rel="noopener">' +
+          '<img class="wl-poster" loading="lazy" alt="" src="https://image.tmdb.org/t/p/w154' + escAttr(te.poster) + '"></a>'
+        : '';
+      const extraTags = hasTe
+        ? (te.rating ? '<span class="wl-tag rating">★ ' + te.rating.toFixed(1) + '</span>' : '') +
+          (te.year ? '<span class="wl-tag">' + escapeHtml(te.year) + '</span>' : '')
+        : '';
+      const streamHtml = hasTe && te.provAt
+        ? '<div class="wl-stream">' + (te.providers && te.providers.length
+            ? 'Streaming in ' + escapeHtml(te.cc) + ': <b>' + te.providers.map(escapeHtml).join(' · ') + '</b>'
+            : 'No subscription streaming listed in ' + escapeHtml(te.cc)) + '</div>'
+        : '';
       return '<div class="wl-ticket wl-priority-' + pr + (i.status === 'watched' ? ' wl-watched' : '') + '">' +
-        '<div class="wl-stub"></div><div class="wl-body">' +
+        '<div class="wl-stub"></div>' + posterHtml + '<div class="wl-body">' +
         '<div class="wl-toprow"><div class="wl-title' + (i.status === 'watched' ? ' done' : '') + '">' + escapeHtml(i.title) + '</div>' +
         '<div class="wl-actions">' +
           '<button class="wl-icon-btn check" data-act="cycle" ' + ref + ' title="Change status">✓</button>' +
@@ -716,12 +795,319 @@
           (i.language ? '<span class="wl-tag">' + escapeHtml(i.language) + '</span>' : '') +
           (i.type ? '<span class="wl-tag">' + escapeHtml(i.type) + '</span>' : '') +
           (i.genre ? '<span class="wl-tag">' + escapeHtml(i.genre) + '</span>' : '') +
-          (i.kind === 'pending' ? '<span class="wl-tag custom">Syncing…</span>' : '') +
+          (i.kind === 'pending' ? '<span class="wl-tag custom">Syncing…</span>' : '') + extraTags +
         '</div>' +
-        (i.notes ? '<div class="wl-notes">' + escapeHtml(i.notes) + '</div>' : '') +
+        (i.notes ? '<div class="wl-notes">' + escapeHtml(i.notes) + '</div>' : '') + streamHtml +
         '<div class="wl-statusbtn" data-act="cycle" ' + ref + '>' + statusLabel(i.status) + ' · tap to change</div>' +
         '</div></div>';
     }).join('');
+  }
+
+  // ---------- TMDB: details, posters, streaming ----------
+  const LS_TMDB_KEY = 'wl-tmdb-key';
+  const LS_TMDB_CC = 'wl-tmdb-country';
+  const LS_TMDB_CACHE = 'wl-tmdb-cache';   // titleKey -> { id, mt, name, year, poster, rating, lang, genres, providers, provAt, cc } | { miss, at }
+  const DAY = 86400000;
+
+  let tmdbCache = {};
+  let formMatch = null;
+  let suggestResults = [];
+  let suggestTimer = null;
+  let lookupSeq = 0;
+  let tmdbAuthBad = false;
+  let enrichQueue = [];
+  let enrichActive = 0;
+  const enrichInflight = new Set();
+  const enrichFailed = new Set();
+  let cacheTimer = null;
+  let softTimer = null;
+
+  function tmdbKey() { return String(readLS(LS_TMDB_KEY, '') || '').trim(); }
+  function tmdbCountry() { return readLS(LS_TMDB_CC, 'IN') || 'IN'; }
+
+  const TMDB_LANG = { hi: 'Hindi', en: 'English', te: 'Telugu', ta: 'Tamil', ml: 'Malayalam',
+    ko: 'Asian', ja: 'Asian', zh: 'Asian', cn: 'Asian', th: 'Asian', id: 'Asian', ms: 'Asian', tl: 'Asian', vi: 'Asian' };
+  function mapLang(code) { return code ? (TMDB_LANG[code] || 'Other') : ''; }
+
+  const TMDB_GENRE = { 28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime', 99: 'Documentary',
+    18: 'Drama', 10751: 'Family', 14: 'Fantasy', 27: 'Horror', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+    53: 'Thriller', 10402: 'Musical', 10759: 'Action', 10765: 'Sci-Fi', 10764: 'Reality', 10762: 'Family' };
+  function mapGenres(ids) {
+    const out = [];
+    (ids || []).forEach(id => { const g = TMDB_GENRE[id]; if (g && !out.includes(g)) out.push(g); });
+    return out;
+  }
+  function primaryGenre(list) { return list.find(g => g !== 'Drama') || list[0] || ''; }
+
+  const PROVIDER_MAP = [
+    [/netflix/i, 'Netflix'], [/prime video|amazon/i, 'Prime Video'], [/hotstar/i, 'Jio Hotstar'], [/zee ?5/i, 'Zee 5'],
+    [/sony ?liv/i, 'Sony LIV'], [/^aha/i, 'Aha'], [/sun ?nxt/i, 'SunNxt'], [/apple tv/i, 'Apple TV'], [/disney/i, 'Disney+'],
+    [/hulu/i, 'Hulu'], [/hbo|^max$/i, 'HBOMax'], [/peacock/i, 'Peacock'], [/etv ?win/i, 'ETV Win'],
+    [/starz/i, 'Starz'], [/simply ?south/i, 'Simply South']
+  ];
+  function mapProvider(name) {
+    for (const [re, out] of PROVIDER_MAP) if (re.test(name)) return out;
+    return name;
+  }
+  function extractProviders(data, cc) {
+    const r = data && data.results && data.results[cc];
+    if (!r) return { names: [], link: '' };
+    const names = [];
+    ['flatrate', 'free', 'ads'].forEach(k => (r[k] || []).forEach(p => {
+      const n = mapProvider(p.provider_name || '');
+      if (n && !names.includes(n)) names.push(n);
+    }));
+    return { names, link: r.link || '' };
+  }
+
+  async function tmdb(path, params) {
+    const key = tmdbKey();
+    if (!key) { const e = new Error('nokey'); e.code = 'nokey'; throw e; }
+    const u = new URL('https://api.themoviedb.org/3' + path);
+    Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
+    const opts = {};
+    if (key.length > 40) opts.headers = { Authorization: 'Bearer ' + key, accept: 'application/json' };
+    else u.searchParams.set('api_key', key);
+    const res = await fetch(u.toString(), opts);
+    if (res.status === 401) { const e = new Error('auth'); e.code = 401; throw e; }
+    if (!res.ok) { const e = new Error('http ' + res.status); e.code = res.status; throw e; }
+    return res.json();
+  }
+  async function tmdbSearch(q) {
+    const data = await tmdb('/search/multi', { query: q, include_adult: 'false', language: 'en-US', page: '1' });
+    return (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+  }
+
+  function entryFromResult(r) {
+    const date = r.release_date || r.first_air_date || '';
+    return {
+      id: r.id, mt: r.media_type,
+      name: r.title || r.name || '',
+      year: date ? date.slice(0, 4) : '',
+      poster: r.poster_path || '',
+      rating: r.vote_count > 0 && r.vote_average ? Math.round(r.vote_average * 10) / 10 : null,
+      lang: r.original_language || '',
+      genres: mapGenres(r.genre_ids),
+      providers: null, link: '', provAt: 0, cc: '', at: Date.now()
+    };
+  }
+
+  function normTitle(s) {
+    const raw = String(s || '').toLowerCase();
+    const n = raw.replace(/&/g, ' and ').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\b(the|a|an)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    return n || raw.trim();
+  }
+
+  // Only accept a search hit when its title really matches (and Movie/Series agrees when known);
+  // a missing poster is better than a wrong one.
+  function pickBest(results, item) {
+    const wantMt = item.type === 'Movie' ? 'movie' : item.type === 'Series' ? 'tv' : null;
+    const q = normTitle(item.title);
+    let best = null, bestScore = 0;
+    results.slice(0, 8).forEach((r, idx) => {
+      if (wantMt && r.media_type !== wantMt) return;
+      const names = [r.title, r.name, r.original_title, r.original_name].filter(Boolean).map(normTitle);
+      let score = 0;
+      if (names.includes(q)) score = 10;
+      else if (names.some(n => n && q && (n.includes(q) || q.includes(n)) &&
+               Math.min(n.length, q.length) / Math.max(n.length, q.length) >= 0.75)) score = 6;
+      if (!score) return;
+      if (item.language && item.language !== 'Other' && mapLang(r.original_language) === item.language) score += 2;
+      score -= idx * 0.1;
+      if (score > bestScore) { best = r; bestScore = score; }
+    });
+    return best;
+  }
+
+  function needsProviders(e) {
+    return !e.provAt || e.cc !== tmdbCountry() || (Date.now() - e.provAt) > 7 * DAY;
+  }
+  function needsWork(item) {
+    const e = tmdbCache[keyOf(item.title)];
+    if (!e) return true;
+    if (e.miss) return (Date.now() - e.at) > 14 * DAY;
+    return needsProviders(e);
+  }
+
+  async function enrichOne(item) {
+    const key = keyOf(item.title);
+    let e = tmdbCache[key];
+    if (!e || e.miss) {
+      const results = await tmdbSearch(item.title);
+      const best = pickBest(results, item);
+      if (!best) { tmdbCache[key] = { miss: true, at: Date.now() }; return; }
+      e = entryFromResult(best);
+      tmdbCache[key] = e;
+    }
+    if (needsProviders(e)) {
+      const data = await tmdb('/' + e.mt + '/' + e.id + '/watch/providers');
+      const p = extractProviders(data, tmdbCountry());
+      e.providers = p.names; e.link = p.link; e.provAt = Date.now(); e.cc = tmdbCountry();
+    }
+  }
+
+  function saveTmdbCacheSoon() {
+    if (cacheTimer) return;
+    cacheTimer = setTimeout(() => { cacheTimer = null; writeLS(LS_TMDB_CACHE, tmdbCache); }, 1000);
+  }
+  function softRender() {
+    if (softTimer) return;
+    softTimer = setTimeout(() => { softTimer = null; render(); }, 1500);
+  }
+
+  function enrichVisible(list) {
+    if (!tmdbKey() || tmdbAuthBad) return;
+    const seen = new Set();
+    enrichQueue = [];
+    list.forEach(i => {
+      const k = keyOf(i.title);
+      if (seen.has(k) || enrichInflight.has(k) || enrichFailed.has(k) || !needsWork(i)) return;
+      seen.add(k);
+      enrichQueue.push({ title: i.title, type: i.type, language: i.language });
+    });
+    pump();
+  }
+
+  function pump() {
+    while (enrichActive < 3 && enrichQueue.length) {
+      const it = enrichQueue.shift();
+      const k = keyOf(it.title);
+      if (enrichInflight.has(k)) continue;
+      enrichInflight.add(k);
+      enrichActive++;
+      enrichOne(it).catch(err => {
+        if (err && err.code === 401) { tmdbAuthBad = true; enrichQueue = []; }
+        else enrichFailed.add(k);
+      }).finally(() => {
+        enrichInflight.delete(k);
+        enrichActive--;
+        saveTmdbCacheSoon();
+        softRender();
+        setTimeout(pump, 150);
+      });
+    }
+  }
+
+  // ---------- settings ----------
+  function fillSettings(msg) {
+    const keyEl = document.getElementById('s-key');
+    keyEl.value = '';
+    keyEl.placeholder = tmdbKey() ? '•••• key saved on this device (paste to replace)' : 'Paste your TMDB key or read-access token';
+    document.getElementById('s-country').value = tmdbCountry();
+    document.getElementById('wl-settings-note').textContent = msg ||
+      'Posters, ratings and streaming info come from TMDB. Your key stays on this device only. Get a free key at themoviedb.org → Settings → API.';
+  }
+  function wlToggleSettings() {
+    const el = document.getElementById('wl-settings');
+    el.classList.toggle('open');
+    if (el.classList.contains('open')) fillSettings(tmdbAuthBad ? 'TMDB rejected the saved key — paste a valid one.' : '');
+  }
+  function openSettings(msg) {
+    document.getElementById('wl-settings').classList.add('open');
+    fillSettings(msg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function wlSaveSettings() {
+    const key = document.getElementById('s-key').value.trim();
+    if (key) writeLS(LS_TMDB_KEY, key);
+    writeLS(LS_TMDB_CC, document.getElementById('s-country').value || 'IN');
+    tmdbAuthBad = false;
+    enrichFailed.clear();
+    document.getElementById('wl-settings').classList.remove('open');
+    render();
+  }
+  function wlClearTmdbCache() {
+    tmdbCache = {};
+    writeLS(LS_TMDB_CACHE, tmdbCache);
+    enrichFailed.clear();
+    document.getElementById('wl-settings').classList.remove('open');
+    render();
+  }
+
+  // ---------- title lookup inside the add/edit form ----------
+  function setSelectIfPresent(id, val) {
+    const sel = document.getElementById(id);
+    if (val && Array.from(sel.options).some(o => o.value === val)) sel.value = val;
+  }
+  function clearLookupUI() {
+    formMatch = null;
+    suggestResults = [];
+    clearTimeout(suggestTimer);
+    lookupSeq++;
+    document.getElementById('wl-suggest').innerHTML = '';
+    document.getElementById('wl-stream-pick').innerHTML = '';
+    document.getElementById('wl-lookup-status').textContent = '';
+  }
+  function renderSuggest(results) {
+    document.getElementById('wl-suggest').innerHTML = results.map((r, idx) => {
+      const name = r.title || r.name || '';
+      const date = r.release_date || r.first_air_date || '';
+      const meta = [r.media_type === 'tv' ? 'Series' : 'Movie', date.slice(0, 4), mapLang(r.original_language)].filter(Boolean).join(' · ');
+      const img = r.poster_path
+        ? '<img src="https://image.tmdb.org/t/p/w92' + escAttr(r.poster_path) + '" alt="">'
+        : '<div class="noimg"></div>';
+      return '<div class="wl-sug" data-idx="' + idx + '">' + img + '<div><div class="wl-sug-t">' +
+        escapeHtml(name) + '</div><div class="wl-sug-m">' + escapeHtml(meta) + '</div></div></div>';
+    }).join('');
+  }
+
+  function wlTitleTyped() {
+    clearTimeout(suggestTimer);
+    if (editingId || !tmdbKey()) return;       // typeahead only when adding
+    const q = document.getElementById('f-title').value.trim();
+    if (q.length < 3) { renderSuggest([]); return; }
+    suggestTimer = setTimeout(wlLookup, 500);
+  }
+
+  async function wlLookup() {
+    const status = document.getElementById('wl-lookup-status');
+    if (!tmdbKey()) { openSettings('Add your TMDB key to look up titles.'); return; }
+    const q = document.getElementById('f-title').value.trim();
+    if (q.length < 2) { status.textContent = 'Type a title first.'; return; }
+    const seq = ++lookupSeq;
+    status.textContent = 'Searching…';
+    try {
+      const results = (await tmdbSearch(q)).slice(0, 6);
+      if (seq !== lookupSeq) return;
+      suggestResults = results;
+      status.textContent = results.length ? 'Tap a match to auto-fill' : 'No matches found';
+      renderSuggest(results);
+    } catch (e) {
+      if (seq !== lookupSeq) return;
+      status.textContent = e && e.code === 401 ? 'TMDB rejected the key — check it in settings.' : 'Lookup failed — check your connection.';
+    }
+  }
+
+  function wlPickSuggestion(idx) {
+    const r = suggestResults[idx];
+    if (!r) return;
+    const e = entryFromResult(r);
+    formMatch = e;
+    if (!editingId) document.getElementById('f-title').value = e.name || document.getElementById('f-title').value;
+    document.getElementById('f-type').value = r.media_type === 'tv' ? 'Series' : 'Movie';
+    setSelectIfPresent('f-lang', mapLang(r.original_language));
+    setSelectIfPresent('f-genre', primaryGenre(e.genres));
+    renderSuggest([]);
+    document.getElementById('wl-lookup-status').textContent =
+      'Filled Type, Genre and Language from TMDB (' + e.name + (e.year ? ', ' + e.year : '') + ')';
+    loadFormProviders(e);
+  }
+
+  async function loadFormProviders(e) {
+    const box = document.getElementById('wl-stream-pick');
+    box.innerHTML = '<span class="wl-form-note">Checking streaming in ' + tmdbCountry() + '…</span>';
+    try {
+      const data = await tmdb('/' + e.mt + '/' + e.id + '/watch/providers');
+      const p = extractProviders(data, tmdbCountry());
+      e.providers = p.names; e.link = p.link; e.provAt = Date.now(); e.cc = tmdbCountry();
+      if (formMatch !== e) return;
+      box.innerHTML = p.names.length
+        ? '<span class="wl-form-note">Streaming in ' + tmdbCountry() + ' — tap one to set Platform:</span>' +
+          p.names.map(n => '<div class="wl-pill" data-plat="' + escAttr(n) + '">' + escapeHtml(n) + '</div>').join('')
+        : '<span class="wl-form-note">No subscription streaming listed in ' + tmdbCountry() + '.</span>';
+    } catch (err) {
+      if (formMatch === e) box.innerHTML = '';
+    }
   }
 
   // ---------- bulk import from flyers ----------
@@ -970,6 +1356,17 @@
 
     document.getElementById('wl-fpanel').addEventListener('click', onChipClick);
     document.getElementById('wl-active').addEventListener('click', onChipClick);
+    tmdbCache = readLS(LS_TMDB_CACHE, {}) || {};
+    document.getElementById('wl-suggest').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-idx]');
+      if (el) wlPickSuggestion(Number(el.dataset.idx));
+    });
+    document.getElementById('wl-stream-pick').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-plat]');
+      if (!el) return;
+      setSelectIfPresent('f-platform', el.dataset.plat);
+      document.getElementById('wl-lookup-status').textContent = 'Platform set to ' + el.dataset.plat;
+    });
     document.getElementById('wl-list').addEventListener('click', function (e) {
       const el = e.target.closest('[data-act]');
       if (!el) return;
