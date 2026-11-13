@@ -18,11 +18,7 @@
     --removing: #A8583F;
   }
   * { box-sizing: border-box; }
-  html, body {
-    background: var(--bg);
-    margin: 0;
-    padding: 0;
-  }
+  html, body { background: var(--bg); margin: 0; padding: 0; }
   body {
     color: var(--text);
     font-family: 'Inter', sans-serif;
@@ -31,21 +27,15 @@
   }
   .wl-header { margin-bottom: 14px; }
   .wl-marquee {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 700;
-    font-size: 30px;
-    letter-spacing: 0.5px;
-    color: var(--gold);
-    line-height: 1.1;
-    margin: 0;
+    font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 30px;
+    letter-spacing: 0.5px; color: var(--gold); line-height: 1.1; margin: 0;
   }
   .wl-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
   .wl-sync { color: var(--muted); font-size: 11.5px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .wl-sync.error { color: var(--removing); }
   .wl-refresh-btn {
     background: none; border: 1px solid #313A63; color: var(--gold);
-    border-radius: 6px; padding: 3px 9px; font-size: 11.5px; cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    border-radius: 6px; padding: 3px 9px; font-size: 11.5px; cursor: pointer; font-family: 'Inter', sans-serif;
   }
 
   .wl-addbtn {
@@ -62,7 +52,7 @@
   .wl-form.open { display: flex; }
   .wl-form label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
   .wl-row { display: flex; gap: 10px; }
-  .wl-row > div { flex: 1; }
+  .wl-row > div { flex: 1; min-width: 0; }
   .wl-form input, .wl-form select, .wl-form textarea {
     width: 100%; background: var(--bg); border: 1px solid #313A63; color: var(--text);
     border-radius: 6px; padding: 9px 10px; font-family: 'Inter', sans-serif; font-size: 14px;
@@ -75,12 +65,10 @@
   }
   .wl-save { background: var(--gold); color: #1A1300; }
   .wl-cancel { background: transparent; color: var(--muted); border: 1px solid #313A63 !important; }
-  .wl-form-note { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .wl-form-note { font-size: 11px; color: var(--muted); line-height: 1.4; margin: 0; }
 
-  .wl-filters { display: flex; gap: 8px; margin-top: 18px; overflow-x: auto; padding-bottom: 4px; }
-  .wl-search {
-    margin-top: 14px; position: relative;
-  }
+  /* Search + filters */
+  .wl-search { margin-top: 16px; position: relative; }
   .wl-search input {
     width: 100%; background: var(--surface); border: 1px solid #313A63; color: var(--text);
     border-radius: 8px; padding: 10px 34px 10px 12px; font-family: 'Inter', sans-serif; font-size: 14px;
@@ -88,18 +76,41 @@
   .wl-search input::placeholder { color: var(--muted); }
   .wl-search-clear {
     position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px;
-    display: none;
+    background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; display: none;
   }
   .wl-search-clear.show { display: block; }
+
+  .wl-toolbar { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .wl-toolbtn {
+    background: var(--surface); border: 1px solid #313A63; color: var(--text); border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .wl-toolbtn.on { border-color: var(--gold-dim); color: var(--gold); }
+  .wl-toolbtn.clear { color: #D98B72; border-color: #5a3a30; display: none; margin-left: auto; }
+  .wl-toolbtn.clear.show { display: flex; }
+  .wl-badge { background: var(--gold); color: #1A1300; border-radius: 10px; font-size: 11px; font-weight: 600; padding: 1px 7px; }
+
+  .wl-fpanel { display: none; background: var(--surface); border-radius: 10px; padding: 14px; margin-top: 10px; }
+  .wl-fpanel.open { display: block; }
+  .wl-fgroup + .wl-fgroup { margin-top: 14px; }
+  .wl-fgroup-label { font-size: 11px; color: var(--muted); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .wl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .wl-pill {
-    flex: none; padding: 6px 12px; border-radius: 20px; background: var(--surface);
+    flex: none; padding: 6px 12px; border-radius: 20px; background: var(--surface-raised);
     color: var(--muted); font-size: 12.5px; cursor: pointer; border: 1px solid transparent; white-space: nowrap;
   }
   .wl-pill.active { background: rgba(212,169,79,0.15); color: var(--gold); border-color: var(--gold-dim); }
+  .wl-active { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .wl-active:empty { display: none; }
+  .wl-result-count { font-size: 12px; color: var(--muted); margin-top: 14px; }
 
-  .wl-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+  .wl-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
   .wl-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 10px; line-height: 1.6; }
+  .wl-empty button {
+    margin-top: 12px; background: var(--surface-raised); color: var(--gold); border: 1px solid var(--gold-dim);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
 
   .wl-ticket { position: relative; background: var(--surface); border-radius: 8px; display: flex; overflow: hidden; }
   .wl-ticket.wl-watched { opacity: 0.55; }
@@ -110,7 +121,7 @@
   .wl-ticket.wl-priority-high .wl-stub { background: repeating-linear-gradient(to bottom, var(--gold) 0px, var(--gold) 6px, transparent 6px, transparent 12px); }
   .wl-ticket.wl-priority-low .wl-stub { background: repeating-linear-gradient(to bottom, #445 0px, #445 6px, transparent 6px, transparent 12px); }
 
-  .wl-body { flex: 1; padding: 14px 14px 12px 16px; }
+  .wl-body { flex: 1; padding: 14px 14px 12px 16px; min-width: 0; }
   .wl-toprow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .wl-title { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 18px; line-height: 1.2; }
   .wl-title.done { text-decoration: line-through; text-decoration-color: var(--watched); }
@@ -186,8 +197,12 @@
       </div>
       <div class="wl-row">
         <div>
-          <label>Genre / Type</label>
-          <input id="f-genre" placeholder="e.g. Movie, Series - S1" />
+          <label>Type</label>
+          <select id="f-type">
+            <option value="">Select</option>
+            <option value="Movie">Movie</option>
+            <option value="Series">Series</option>
+          </select>
         </div>
         <div>
           <label>Priority</label>
@@ -197,6 +212,30 @@
             <option value="low">Low</option>
           </select>
         </div>
+      </div>
+      <div>
+        <label>Genre</label>
+        <select id="f-genre">
+          <option value="">Select</option>
+          <option value="Action">Action</option>
+          <option value="Comedy">Comedy</option>
+          <option value="Romance">Romance</option>
+          <option value="Thriller">Thriller</option>
+          <option value="Horror">Horror</option>
+          <option value="Suspense">Suspense</option>
+          <option value="Crime">Crime</option>
+          <option value="Adventure">Adventure</option>
+          <option value="Animation">Animation</option>
+          <option value="Drama">Drama</option>
+          <option value="Fantasy">Fantasy</option>
+          <option value="Sci-Fi">Sci-Fi</option>
+          <option value="Mystery">Mystery</option>
+          <option value="Family">Family</option>
+          <option value="Documentary">Documentary</option>
+          <option value="Reality">Reality</option>
+          <option value="Musical">Musical</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
       <div>
         <label>Notes (optional)</label>
@@ -210,19 +249,27 @@
   </div>
 
   <div class="wl-search">
-    <input id="wl-search-input" type="text" placeholder="Search title, language, platform, notes…" oninput="wlOnSearch()" />
+    <input id="wl-search-input" type="text" placeholder="Search title, notes… (several words work together)" oninput="wlOnSearch()" />
     <button class="wl-search-clear" id="wl-search-clear" onclick="wlClearSearch()">✕</button>
   </div>
-  <div class="wl-filters" id="wl-filters"></div>
+  <div class="wl-toolbar">
+    <button class="wl-toolbtn" id="wl-filters-btn" onclick="wlToggleFilters()">
+      <span id="wl-filters-arrow">▾</span> Filters <span class="wl-badge" id="wl-filters-badge" style="display:none">0</span>
+    </button>
+    <button class="wl-toolbtn clear" id="wl-clear-btn" onclick="wlClearAll()">✕ Clear all</button>
+  </div>
+  <div class="wl-active" id="wl-active"></div>
+  <div class="wl-fpanel" id="wl-fpanel"></div>
+  <div class="wl-result-count" id="wl-result-count"></div>
   <div class="wl-list" id="wl-list"></div>
 
 <script>
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOxZJiwrf5qM-XNXrr6HgX0W3BoLpitMDTO4JTNr1h7DRy51L_9NI18TMsuBGULluIFWDs3RAq2S-H/pub?gid=0&single=true&output=csv";
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwE70_QV5GOGam2E8u9Pzt6e-ZB_OYClKzGkkC6bKVGWMMb-pRd7pf-0onXoCL_hbV4/exec";
 
-  const LS_OVERRIDES = 'wl-overrides';   // { titleKey: {status, priority, notes} } — local edits to sheet-sourced rows
-  const LS_HIDDEN = 'wl-hidden';         // [titleKey, ...] sheet rows hidden locally
-  const LS_PENDING = 'wl-pending-adds';  // [ {title,language,platform,genre,priority,notes,status,added} ] — sent to sheet, not yet confirmed in a sync
+  const LS_OVERRIDES = 'wl-overrides';   // { titleKey: {status, priority, notes, platform, language, type, genre} }
+  const LS_HIDDEN = 'wl-hidden';         // [titleKey, ...] sheet rows hidden on this device
+  const LS_PENDING = 'wl-pending-adds';  // items sent to the sheet but not yet seen in a sync
   const LS_CACHE = 'wl-sheet-cache';     // { rows: [...], syncedAt: ts }
 
   let sheetItems = [];
@@ -230,13 +277,454 @@
   let overrides = {};
   let hidden = [];
   let editingId = null;
-  let activeFilter = { type: 'status', value: 'to_watch' };
-  let searchQuery = '';
   let lastSynced = null;
+  let searchQuery = '';
+  let filtersOpen = false;
+  let filters = { status: ['to_watch'], type: [], platform: [], language: [], genre: [], priority: [] };
 
-  const keyOf = (title) => (title || '').trim().toLowerCase();
+  // ---------- helpers ----------
+  function keyOf(title) { return (title || '').trim().toLowerCase(); }
+  function capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function statusLabel(s) { return s === 'to_watch' ? 'To watch' : s === 'watching' ? 'Watching' : 'Watched'; }
+  function statusForSheet(s) { return s === 'to_watch' ? 'To Watch' : s === 'watching' ? 'Watching' : 'Watched'; }
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  function escAttr(str) {
+    return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function readLS(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function writeLS(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
 
-  // Titles from the latest flyer, queued for a one-tap bulk write to the sheet.
+  const FACETS = [
+    { key: 'status',   label: 'Status',   order: ['to_watch', 'watching', 'watched'], fmt: statusLabel, always: true },
+    { key: 'type',     label: 'Type',     selectId: 'f-type' },
+    { key: 'platform', label: 'Platform', selectId: 'f-platform' },
+    { key: 'language', label: 'Language', selectId: 'f-lang' },
+    { key: 'genre',    label: 'Genre',    selectId: 'f-genre' },
+    { key: 'priority', label: 'Priority', order: ['high', 'medium', 'low'], fmt: capFirst }
+  ];
+
+  function facetOrder(f) {
+    if (f.order) return f.order;
+    const sel = document.getElementById(f.selectId);
+    return sel ? Array.from(sel.options).map(o => o.value).filter(Boolean) : [];
+  }
+  function sortByOrder(values, order) {
+    return values.slice().sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }
+
+  // ---------- legacy "Genre" values (e.g. "Series - S1") -> Type + Genre ----------
+  const LEGACY_RE = /^(movie|series|docu-series|reality series|musical concert)\b/i;
+
+  function splitLegacy(raw, typeAlreadySet) {
+    const s = (raw || '').trim();
+    const isLegacy = LEGACY_RE.test(s) || (!typeAlreadySet && /^documentary$/i.test(s));
+    if (!isLegacy) return null;
+    const season = ((s.match(/\bS\d+\b/i) || [''])[0]).toUpperCase();
+    const type = /series/i.test(s) ? 'Series' : 'Movie';
+    let genre = '';
+    if (/docu/i.test(s)) genre = 'Documentary';
+    else if (/reality/i.test(s)) genre = 'Reality';
+    else if (/musical/i.test(s)) genre = 'Musical';
+    return { type, genre, season };
+  }
+
+  function normType(t) {
+    const v = (t || '').trim().toLowerCase();
+    return v === 'movie' ? 'Movie' : v === 'series' ? 'Series' : '';
+  }
+
+  function normalizeRow(r) {
+    let type = normType(r.type);
+    let genre = (r.genre || '').trim();
+    let notes = r.notes || '';
+    const legacy = splitLegacy(genre, !!type);
+    if (legacy) {
+      if (!type) type = legacy.type;
+      genre = legacy.genre;
+      if (legacy.season && !new RegExp('\\b' + legacy.season + '\\b', 'i').test(notes)) {
+        notes = notes ? legacy.season + ' · ' + notes : legacy.season;
+      }
+    }
+    return { ...r, type, genre, notes };
+  }
+
+  // Fire-and-forget write to the Apps Script endpoint (no-cors: we can't read the reply).
+  function wlWriteToSheet(payload) {
+    try {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // ---------- CSV ----------
+  function parseCSV(text) {
+    const rows = [];
+    let i = 0, field = '', row = [], inQuotes = false;
+    while (i < text.length) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += c; i++; continue;
+      } else {
+        if (c === '"') { inQuotes = true; i++; continue; }
+        if (c === ',') { row.push(field); field = ''; i++; continue; }
+        if (c === '\r') { i++; continue; }
+        if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+        field += c; i++; continue;
+      }
+    }
+    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function rowsToItems(rows) {
+    if (!rows.length) return [];
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    return rows.slice(1)
+      .filter(r => r.some(c => c.trim() !== ''))
+      .map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => obj[h] = (r[idx] || '').trim());
+        return normalizeRow({
+          title: obj.title || 'Untitled',
+          language: obj.language || '',
+          platform: obj.platform || '',
+          type: obj.type || '',
+          genre: obj.genre || '',
+          priority: (obj.priority || 'medium').toLowerCase(),
+          notes: obj.notes || '',
+          status: (obj.status || 'to watch').toLowerCase().replace(/\s+/g, '_')
+        });
+      });
+  }
+
+  async function wlSyncFromSheet() {
+    const syncText = document.getElementById('wl-sync-text');
+    const syncBox = document.getElementById('wl-sync');
+    syncText.textContent = 'Syncing…';
+    syncBox.classList.remove('error');
+    try {
+      const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Fetch failed');
+      const text = await res.text();
+      const parsed = rowsToItems(parseCSV(text));
+      sheetItems = parsed;
+      lastSynced = Date.now();
+      writeLS(LS_CACHE, { rows: parsed, syncedAt: lastSynced });
+
+      const sheetKeys = new Set(parsed.map(i => keyOf(i.title)));
+      pendingAdds = pendingAdds.filter(p => !sheetKeys.has(keyOf(p.title)));
+      writeLS(LS_PENDING, pendingAdds);
+
+      syncText.textContent = 'Synced just now from sheet';
+    } catch (e) {
+      const cached = readLS(LS_CACHE, null);
+      if (cached) {
+        sheetItems = cached.rows.map(normalizeRow);
+        lastSynced = cached.syncedAt;
+        syncText.textContent = 'Offline — showing data from last sync (' + new Date(lastSynced).toLocaleString() + ')';
+        syncBox.classList.add('error');
+      } else {
+        sheetItems = [];
+        syncText.textContent = 'Could not load sheet, and no cached data yet';
+        syncBox.classList.add('error');
+      }
+    }
+    render();
+  }
+
+  // ---------- add / edit form ----------
+  function resetForm() {
+    ['f-title', 'f-notes'].forEach(id => document.getElementById(id).value = '');
+    ['f-lang', 'f-platform', 'f-type', 'f-genre'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-priority').value = 'medium';
+    document.getElementById('wl-form-context').textContent = '';
+  }
+
+  function wlToggleForm() {
+    editingId = null;
+    const form = document.getElementById('wl-form');
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) resetForm();
+  }
+
+  function sheetPayload(fields) {
+    return {
+      title: fields.title,
+      language: fields.language,
+      platform: fields.platform,
+      type: fields.type,
+      genre: fields.genre,
+      priority: capFirst(fields.priority),
+      notes: fields.notes
+    };
+  }
+
+  function wlSave() {
+    const title = document.getElementById('f-title').value.trim();
+    if (!title) { document.getElementById('f-title').focus(); return; }
+    const fields = {
+      title,
+      language: document.getElementById('f-lang').value,
+      platform: document.getElementById('f-platform').value,
+      type: document.getElementById('f-type').value,
+      genre: document.getElementById('f-genre').value,
+      priority: document.getElementById('f-priority').value,
+      notes: document.getElementById('f-notes').value.trim()
+    };
+
+    if (editingId && editingId.startsWith('sheet:')) {
+      const tKey = editingId.slice(6);
+      overrides[tKey] = {
+        ...(overrides[tKey] || {}),
+        priority: fields.priority, notes: fields.notes, platform: fields.platform,
+        language: fields.language, type: fields.type, genre: fields.genre
+      };
+      writeLS(LS_OVERRIDES, overrides);
+      wlWriteToSheet({ action: 'update', ...sheetPayload(fields) });
+    } else if (editingId && editingId.startsWith('pending:')) {
+      const idx = pendingAdds.findIndex(p => p.title === editingId.slice(8));
+      if (idx > -1) pendingAdds[idx] = { ...pendingAdds[idx], ...fields };
+      writeLS(LS_PENDING, pendingAdds);
+      wlWriteToSheet({ action: 'update', ...sheetPayload(fields) });
+    } else {
+      pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
+      writeLS(LS_PENDING, pendingAdds);
+      wlWriteToSheet({ action: 'add', ...sheetPayload(fields), status: 'To Watch' });
+    }
+    editingId = null;
+    document.getElementById('wl-form').classList.remove('open');
+    render();
+  }
+
+  function wlEdit(id, kind) {
+    const item = getMergedItems().find(i => i._id === id);
+    if (!item) return;
+    editingId = id;
+    document.getElementById('f-title').value = item.title;
+    document.getElementById('f-lang').value = item.language || '';
+    document.getElementById('f-platform').value = item.platform || '';
+    document.getElementById('f-type').value = item.type || '';
+    document.getElementById('f-genre').value = item.genre || '';
+    document.getElementById('f-priority').value = item.priority || 'medium';
+    document.getElementById('f-notes').value = item.notes || '';
+    document.getElementById('wl-form-context').textContent = kind === 'sheet'
+      ? 'Changes save straight to your sheet, matched by title — change the title itself in the sheet.'
+      : 'This was just added and is syncing to your sheet — it should be confirmed within a few minutes.';
+    document.getElementById('wl-form').classList.add('open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function wlDelete(id, kind) {
+    if (kind === 'sheet') {
+      const tKey = id.slice(6);
+      if (!hidden.includes(tKey)) hidden.push(tKey);
+      writeLS(LS_HIDDEN, hidden);
+      // Hides it on this device only; delete the row in the sheet to remove it everywhere.
+    } else {
+      pendingAdds = pendingAdds.filter(p => p.title !== id.slice(8));
+      writeLS(LS_PENDING, pendingAdds);
+    }
+    render();
+  }
+
+  function wlCycleStatus(id, kind) {
+    const order = ['to_watch', 'watching', 'watched'];
+    if (kind === 'sheet') {
+      const tKey = id.slice(6);
+      const src = sheetItems.find(i => keyOf(i.title) === tKey);
+      const current = (overrides[tKey] && overrides[tKey].status) || (src && src.status) || 'to_watch';
+      const next = order[(order.indexOf(current) + 1) % order.length];
+      overrides[tKey] = { ...(overrides[tKey] || {}), status: next };
+      writeLS(LS_OVERRIDES, overrides);
+      wlWriteToSheet({ action: 'update', title: src ? src.title : tKey, status: statusForSheet(next) });
+    } else {
+      const t = id.slice(8);
+      pendingAdds = pendingAdds.map(p => {
+        if (p.title !== t) return p;
+        return { ...p, status: order[(order.indexOf(p.status) + 1) % order.length] };
+      });
+      writeLS(LS_PENDING, pendingAdds);
+      const item = pendingAdds.find(p => p.title === t);
+      if (item) wlWriteToSheet({ action: 'update', title: t, status: statusForSheet(item.status) });
+    }
+    render();
+  }
+
+  // ---------- merged view ----------
+  function getMergedItems() {
+    const visible = sheetItems.filter(i => !hidden.includes(keyOf(i.title)));
+    const fromSheet = visible.map(i => {
+      const tKey = keyOf(i.title);
+      const ov = overrides[tKey] || {};
+      return normalizeRow({
+        _id: 'sheet:' + tKey,
+        title: i.title,
+        language: ov.language !== undefined ? ov.language : i.language,
+        platform: ov.platform !== undefined ? ov.platform : i.platform,
+        type: ov.type !== undefined ? ov.type : i.type,
+        genre: ov.genre !== undefined ? ov.genre : i.genre,
+        priority: ov.priority || i.priority || 'medium',
+        notes: ov.notes !== undefined ? ov.notes : i.notes,
+        status: ov.status || i.status || 'to_watch',
+        kind: 'sheet'
+      });
+    });
+    const fromPending = pendingAdds.map(p => ({ ...normalizeRow(p), _id: 'pending:' + p.title, kind: 'pending' }));
+    return [...fromPending, ...fromSheet];
+  }
+
+  // ---------- search + multi-filters ----------
+  function wlOnSearch() {
+    searchQuery = document.getElementById('wl-search-input').value.trim().toLowerCase();
+    render();
+  }
+  function wlClearSearch() {
+    searchQuery = '';
+    document.getElementById('wl-search-input').value = '';
+    render();
+  }
+  function wlToggleFilters() { filtersOpen = !filtersOpen; render(); }
+  function wlToggleFilter(facet, val) {
+    const arr = filters[facet];
+    if (!arr) return;
+    const i = arr.indexOf(val);
+    if (i === -1) arr.push(val); else arr.splice(i, 1);
+    render();
+  }
+  function wlClearAll() {
+    Object.keys(filters).forEach(k => filters[k] = []);
+    searchQuery = '';
+    document.getElementById('wl-search-input').value = '';
+    render();
+  }
+  function activeFilterCount() {
+    return Object.keys(filters).reduce((n, k) => n + filters[k].length, 0);
+  }
+
+  function matchesSearch(item) {
+    if (!searchQuery) return true;
+    const haystack = [item.title, item.language, item.platform, item.type, item.genre, item.notes]
+      .join(' ').toLowerCase();
+    return searchQuery.split(/\s+/).every(term => haystack.includes(term));
+  }
+  function matchesFilters(item) {
+    for (const f of FACETS) {
+      const sel = filters[f.key];
+      if (sel.length && !sel.includes(item[f.key])) return false;
+    }
+    return matchesSearch(item);
+  }
+
+  const priorityRank = { high: 0, medium: 1, low: 2 };
+
+  function renderFilterUI(all) {
+    const panel = document.getElementById('wl-fpanel');
+    panel.classList.toggle('open', filtersOpen);
+    document.getElementById('wl-filters-arrow').textContent = filtersOpen ? '▴' : '▾';
+    document.getElementById('wl-filters-btn').classList.toggle('on', filtersOpen || activeFilterCount() > 0);
+
+    if (filtersOpen) {
+      panel.innerHTML = FACETS.map(f => {
+        const present = Array.from(new Set(all.map(i => i[f.key]).filter(Boolean)));
+        const values = sortByOrder(
+          Array.from(new Set([...(f.always ? f.order : []), ...present, ...filters[f.key]])),
+          facetOrder(f)
+        );
+        if (!values.length) return '';
+        return '<div class="wl-fgroup"><div class="wl-fgroup-label">' + f.label + '</div><div class="wl-chips">' +
+          values.map(v =>
+            '<div class="wl-pill ' + (filters[f.key].includes(v) ? 'active' : '') + '" data-facet="' + f.key +
+            '" data-val="' + escAttr(v) + '">' + escapeHtml(f.fmt ? f.fmt(v) : v) + '</div>'
+          ).join('') + '</div></div>';
+      }).join('');
+    }
+
+    const strip = [];
+    FACETS.forEach(f => filters[f.key].forEach(v => {
+      strip.push('<div class="wl-pill active" data-facet="' + f.key + '" data-val="' + escAttr(v) + '">' +
+        escapeHtml(f.fmt ? f.fmt(v) : v) + ' ✕</div>');
+    }));
+    document.getElementById('wl-active').innerHTML = strip.join('');
+
+    const n = activeFilterCount();
+    const badge = document.getElementById('wl-filters-badge');
+    badge.style.display = n > 0 ? '' : 'none';
+    badge.textContent = n;
+    document.getElementById('wl-clear-btn').classList.toggle('show', n > 0 || !!searchQuery);
+    document.getElementById('wl-search-clear').classList.toggle('show', !!searchQuery);
+  }
+
+  function render() {
+    const all = getMergedItems();
+    document.getElementById('wl-count').textContent =
+      all.length === 0 ? 'Your watchlist is empty.' :
+      all.filter(i => i.status !== 'watched').length + ' to go · ' +
+      all.filter(i => i.status === 'watched').length + ' watched · ' + all.length + ' total';
+
+    renderFilterUI(all);
+
+    const list = all.filter(matchesFilters).sort((a, b) =>
+      (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1)
+    );
+    document.getElementById('wl-result-count').textContent =
+      all.length ? 'Showing ' + list.length + ' of ' + all.length : '';
+
+    const listEl = document.getElementById('wl-list');
+    if (list.length === 0) {
+      const filtered = activeFilterCount() > 0 || searchQuery;
+      listEl.innerHTML = '<div class="wl-empty">' +
+        (filtered ? 'No matches for the current search and filters.<br/><button data-act="clearall">Clear all</button>'
+                  : 'Nothing here yet.<br/>Tap "+ Add a film" to start.') + '</div>';
+      return;
+    }
+
+    listEl.innerHTML = list.map(i => {
+      const pr = priorityRank[i.priority] !== undefined ? i.priority : 'medium';
+      const ref = 'data-id="' + escAttr(i._id) + '" data-kind="' + i.kind + '"';
+      return '<div class="wl-ticket wl-priority-' + pr + (i.status === 'watched' ? ' wl-watched' : '') + '">' +
+        '<div class="wl-stub"></div><div class="wl-body">' +
+        '<div class="wl-toprow"><div class="wl-title' + (i.status === 'watched' ? ' done' : '') + '">' + escapeHtml(i.title) + '</div>' +
+        '<div class="wl-actions">' +
+          '<button class="wl-icon-btn check" data-act="cycle" ' + ref + ' title="Change status">✓</button>' +
+          '<button class="wl-icon-btn" data-act="edit" ' + ref + ' title="Edit">✎</button>' +
+          '<button class="wl-icon-btn del" data-act="del" ' + ref + ' title="Remove">✕</button>' +
+        '</div></div>' +
+        '<div class="wl-meta">' +
+          (i.platform ? '<span class="wl-tag platform">' + escapeHtml(i.platform) + '</span>' : '') +
+          (i.language ? '<span class="wl-tag">' + escapeHtml(i.language) + '</span>' : '') +
+          (i.type ? '<span class="wl-tag">' + escapeHtml(i.type) + '</span>' : '') +
+          (i.genre ? '<span class="wl-tag">' + escapeHtml(i.genre) + '</span>' : '') +
+          (i.kind === 'pending' ? '<span class="wl-tag custom">Syncing…</span>' : '') +
+        '</div>' +
+        (i.notes ? '<div class="wl-notes">' + escapeHtml(i.notes) + '</div>' : '') +
+        '<div class="wl-statusbtn" data-act="cycle" ' + ref + '>' + statusLabel(i.status) + ' · tap to change</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ---------- bulk import from flyers ----------
   const BULK_IMPORT_QUEUE = [
     { title: "Single Salma", language: "Hindi", platform: "Jio Hotstar", genre: "Movie", notes: "" },
     { title: "Chinna Chinna Aasai", language: "Malayalam", platform: "Jio Hotstar", genre: "Movie", notes: "" },
@@ -426,7 +914,7 @@
     { title: "Still Water", language: "English", platform: "Apple TV", genre: "Series - S5", notes: "" },
     { title: "The Dynasty: U Conn Huskies", language: "English", platform: "Apple TV", genre: "Docu-Series - S1", notes: "" },
     { title: "Chennai Love Story", language: "Telugu", platform: "Sony LIV", genre: "Movie", notes: "Also in: Tel, Tam, Kan, Mal & Hin" }
-    ];
+  ];
 
   async function wlBulkImport() {
     const btn = document.getElementById('wl-bulk-btn');
@@ -444,377 +932,54 @@
     btn.disabled = true;
     for (let idx = 0; idx < toAdd.length; idx++) {
       const item = toAdd[idx];
-      btn.textContent = `Sending ${idx + 1} of ${toAdd.length}…`;
-      const fields = { ...item, priority: 'medium' };
+      btn.textContent = 'Sending ' + (idx + 1) + ' of ' + toAdd.length + '…';
+      // queue entries still carry the old "Series - S1" style value; split it into Type + Genre (+ season in notes)
+      const legacy = splitLegacy(item.genre, false) || { type: '', genre: item.genre || '', season: '' };
+      const fields = {
+        title: item.title,
+        language: item.language,
+        platform: item.platform,
+        type: legacy.type,
+        genre: legacy.genre,
+        priority: 'medium',
+        notes: [legacy.season, item.notes].filter(Boolean).join(' · ')
+      };
       pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
       writeLS(LS_PENDING, pendingAdds);
-      wlWriteToSheet({ action: 'add', ...fields, status: 'to_watch' });
+      wlWriteToSheet({ action: 'add', ...sheetPayload(fields), status: 'To Watch' });
       render();
-      // small delay between requests so we don't fire 28 POSTs simultaneously
       await new Promise(r => setTimeout(r, 250));
     }
     btn.disabled = false;
-    btn.textContent = `✓ Sent ${toAdd.length} titles`;
+    btn.textContent = '✓ Sent ' + toAdd.length + ' titles';
     setTimeout(() => { btn.textContent = original; }, 3000);
   }
 
-  function readLS(key, fallback) {
-    try {
-      const v = localStorage.getItem(key);
-      return v ? JSON.parse(v) : fallback;
-    } catch (e) { return fallback; }
-  }
-  function writeLS(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
-  }
-
-  // Fire-and-forget write to the Apps Script endpoint. mode:'no-cors' means we can't
-  // read the response, but the request still reaches the script and runs there.
-  function wlWriteToSheet(payload) {
-    try {
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  function parseCSV(text) {
-    const rows = [];
-    let i = 0, field = '', row = [], inQuotes = false;
-    while (i < text.length) {
-      const c = text[i];
-      if (inQuotes) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-          inQuotes = false; i++; continue;
-        }
-        field += c; i++; continue;
-      } else {
-        if (c === '"') { inQuotes = true; i++; continue; }
-        if (c === ',') { row.push(field); field = ''; i++; continue; }
-        if (c === '\r') { i++; continue; }
-        if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
-        field += c; i++; continue;
-      }
-    }
-    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
-    return rows;
-  }
-
-  function rowsToItems(rows) {
-    if (!rows.length) return [];
-    const headers = rows[0].map(h => h.trim().toLowerCase());
-    return rows.slice(1)
-      .filter(r => r.some(c => c.trim() !== ''))
-      .map(r => {
-        const obj = {};
-        headers.forEach((h, idx) => obj[h] = (r[idx] || '').trim());
-        return {
-          title: obj.title || 'Untitled',
-          language: obj.language || '',
-          platform: obj.platform || '',
-          genre: obj.genre || '',
-          priority: (obj.priority || 'medium').toLowerCase(),
-          notes: obj.notes || '',
-          status: (obj.status || 'to watch').toLowerCase().replace(/\s+/g, '_')
-        };
-      });
-  }
-
-  async function wlSyncFromSheet() {
-    const syncText = document.getElementById('wl-sync-text');
-    const syncBox = document.getElementById('wl-sync');
-    syncText.textContent = 'Syncing…';
-    syncBox.classList.remove('error');
-    try {
-      const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Fetch failed');
-      const text = await res.text();
-      const rows = parseCSV(text);
-      const parsed = rowsToItems(rows);
-      sheetItems = parsed;
-      lastSynced = Date.now();
-      writeLS(LS_CACHE, { rows: parsed, syncedAt: lastSynced });
-
-      // Drop any pending add that's now confirmed present in the sheet
-      const sheetKeys = new Set(parsed.map(i => keyOf(i.title)));
-      pendingAdds = pendingAdds.filter(p => !sheetKeys.has(keyOf(p.title)));
-      writeLS(LS_PENDING, pendingAdds);
-
-      syncText.textContent = 'Synced just now from sheet';
-    } catch (e) {
-      const cached = readLS(LS_CACHE, null);
-      if (cached) {
-        sheetItems = cached.rows;
-        lastSynced = cached.syncedAt;
-        syncText.textContent = `Offline — showing data from last sync (${new Date(lastSynced).toLocaleString()})`;
-        syncBox.classList.add('error');
-      } else {
-        sheetItems = [];
-        syncText.textContent = 'Could not load sheet, and no cached data yet';
-        syncBox.classList.add('error');
-      }
-    }
-    render();
-  }
-
-  function wlToggleForm() {
-    editingId = null;
-    const form = document.getElementById('wl-form');
-    form.classList.toggle('open');
-    if (form.classList.contains('open')) {
-      ['f-title','f-lang','f-platform','f-genre','f-notes'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('f-priority').value = 'medium';
-      document.getElementById('wl-form-context').textContent = '';
-    }
-  }
-
-  function wlSave() {
-    const title = document.getElementById('f-title').value.trim();
-    if (!title) { document.getElementById('f-title').focus(); return; }
-    const fields = {
-      title,
-      language: document.getElementById('f-lang').value,
-      platform: document.getElementById('f-platform').value,
-      genre: document.getElementById('f-genre').value.trim(),
-      priority: document.getElementById('f-priority').value,
-      notes: document.getElementById('f-notes').value.trim()
-    };
-
-    if (editingId && editingId.startsWith('sheet:')) {
-      // editing a sheet-sourced row -> save locally as override AND push full update to the sheet
-      const tKey = editingId.slice(6);
-      overrides[tKey] = {
-        ...(overrides[tKey] || {}),
-        priority: fields.priority,
-        notes: fields.notes,
-        platform: fields.platform,
-        language: fields.language,
-        genre: fields.genre
-      };
-      writeLS(LS_OVERRIDES, overrides);
-      wlWriteToSheet({
-        action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes,
-        platform: fields.platform, language: fields.language, genre: fields.genre
-      });
-    } else if (editingId && editingId.startsWith('pending:')) {
-      // editing an item we already sent but haven't seen confirmed yet
-      const idx = pendingAdds.findIndex(p => p.title === editingId.slice(8));
-      if (idx > -1) pendingAdds[idx] = { ...pendingAdds[idx], ...fields };
-      writeLS(LS_PENDING, pendingAdds);
-      wlWriteToSheet({
-        action: 'update', title: fields.title, priority: fields.priority, notes: fields.notes,
-        platform: fields.platform, language: fields.language, genre: fields.genre
-      });
-    } else {
-      // brand new item -> add locally right away, and push to the sheet
-      pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
-      writeLS(LS_PENDING, pendingAdds);
-      wlWriteToSheet({ action: 'add', ...fields, status: 'to_watch' });
-    }
-    editingId = null;
-    document.getElementById('wl-form').classList.remove('open');
-    render();
-  }
-
-  function wlEdit(id, kind) {
-    const item = getMergedItems().find(i => i._id === id);
-    if (!item) return;
-    editingId = id;
-    document.getElementById('f-title').value = item.title;
-    document.getElementById('f-lang').value = item.language;
-    document.getElementById('f-platform').value = item.platform;
-    document.getElementById('f-genre').value = item.genre;
-    document.getElementById('f-priority').value = item.priority;
-    document.getElementById('f-notes').value = item.notes;
-    document.getElementById('wl-form-context').textContent = kind === 'sheet'
-      ? "Changes here save straight to your sheet by matching the title — if you also rename the title, save that separately after, since edits are matched by the old title."
-      : "This was just added and is syncing to your sheet — should be fully confirmed within a few minutes.";
-    document.getElementById('wl-form').classList.add('open');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function wlDelete(id, kind) {
-    if (kind === 'sheet') {
-      const tKey = id.slice(6);
-      if (!hidden.includes(tKey)) hidden.push(tKey);
-      writeLS(LS_HIDDEN, hidden);
-      // Note: this hides it on this device only — the sheet write-back doesn't support
-      // deleting rows yet, so remove it from the sheet directly if you want it fully gone.
-    } else {
-      pendingAdds = pendingAdds.filter(p => p.title !== id.slice(8));
-      writeLS(LS_PENDING, pendingAdds);
-    }
-    render();
-  }
-
-  function wlCycleStatus(id, kind) {
-    const order = ['to_watch', 'watching', 'watched'];
-    if (kind === 'sheet') {
-      const tKey = id.slice(6);
-      const current = (overrides[tKey] && overrides[tKey].status) ||
-        (sheetItems.find(i => keyOf(i.title) === tKey) || {}).status || 'to_watch';
-      const next = order[(order.indexOf(current) + 1) % order.length];
-      overrides[tKey] = { ...(overrides[tKey] || {}), status: next };
-      writeLS(LS_OVERRIDES, overrides);
-      const src = sheetItems.find(i => keyOf(i.title) === tKey);
-      wlWriteToSheet({ action: 'update', title: src ? src.title : tKey, status: next });
-    } else {
-      const t = id.slice(8);
-      pendingAdds = pendingAdds.map(p => {
-        if (p.title !== t) return p;
-        const next = order[(order.indexOf(p.status) + 1) % order.length];
-        return { ...p, status: next };
-      });
-      writeLS(LS_PENDING, pendingAdds);
-      const item = pendingAdds.find(p => p.title === t);
-      if (item) wlWriteToSheet({ action: 'update', title: t, status: item.status });
-    }
-    render();
-  }
-
-  function statusLabel(s) {
-    return s === 'to_watch' ? 'To watch' : s === 'watching' ? 'Watching' : 'Watched';
-  }
-
-  function getMergedItems() {
-    const visible = sheetItems.filter(i => !hidden.includes(keyOf(i.title)));
-    const fromSheet = visible.map(i => {
-      const tKey = keyOf(i.title);
-      const ov = overrides[tKey] || {};
-      return {
-        _id: 'sheet:' + tKey,
-        title: i.title,
-        language: ov.language || i.language,
-        platform: ov.platform || i.platform,
-        genre: ov.genre !== undefined ? ov.genre : i.genre,
-        priority: ov.priority || i.priority || 'medium',
-        notes: ov.notes !== undefined ? ov.notes : i.notes,
-        status: ov.status || i.status || 'to_watch',
-        kind: 'sheet'
-      };
-    });
-    const fromPending = pendingAdds.map(p => ({ ...p, _id: 'pending:' + p.title, kind: 'pending' }));
-    return [...fromPending, ...fromSheet];
-  }
-
-  function buildFilters(all) {
-    const platforms = [...new Set(all.map(i => i.platform).filter(Boolean))];
-    const languages = [...new Set(all.map(i => i.language).filter(Boolean))];
-    const container = document.getElementById('wl-filters');
-    const pills = [
-      { type: 'status', value: 'to_watch', label: 'To watch' },
-      { type: 'status', value: 'watching', label: 'Watching' },
-      { type: 'status', value: 'watched', label: 'Watched' },
-      { type: 'all', value: 'all', label: 'All' },
-      ...platforms.map(p => ({ type: 'platform', value: p, label: p })),
-      ...languages.map(l => ({ type: 'language', value: l, label: l })),
-    ];
-    container.innerHTML = pills.map(p => `
-      <div class="wl-pill ${activeFilter.type === p.type && activeFilter.value === p.value ? 'active' : ''}"
-           onclick='wlSetFilter(${JSON.stringify(p.type)}, ${JSON.stringify(p.value)})'>
-        ${p.label}
-      </div>
-    `).join('');
-  }
-
-  function wlSetFilter(type, value) {
-    activeFilter = { type, value };
-    render();
-  }
-
-  function wlOnSearch() {
-    searchQuery = document.getElementById('wl-search-input').value.trim().toLowerCase();
-    document.getElementById('wl-search-clear').classList.toggle('show', searchQuery.length > 0);
-    render();
-  }
-
-  function wlClearSearch() {
-    searchQuery = '';
-    document.getElementById('wl-search-input').value = '';
-    document.getElementById('wl-search-clear').classList.remove('show');
-    render();
-  }
-
-  function matchesSearch(item) {
-    if (!searchQuery) return true;
-    const haystack = [item.title, item.language, item.platform, item.genre, item.notes]
-      .join(' ').toLowerCase();
-    return haystack.includes(searchQuery);
-  }
-
-  function filteredItems(all) {
-    const bySearch = all.filter(matchesSearch);
-    if (searchQuery) return bySearch; // while searching, show matches across all statuses/filters
-    if (activeFilter.type === 'all') return bySearch;
-    if (activeFilter.type === 'status') return bySearch.filter(i => i.status === activeFilter.value);
-    if (activeFilter.type === 'platform') return bySearch.filter(i => i.platform === activeFilter.value);
-    if (activeFilter.type === 'language') return bySearch.filter(i => i.language === activeFilter.value);
-    return bySearch;
-  }
-
-  const priorityRank = { high: 0, medium: 1, low: 2 };
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str || '';
-    return div.innerHTML;
-  }
-
-  function render() {
-    const all = getMergedItems();
-    document.getElementById('wl-count').textContent =
-      all.length === 0 ? 'Your watchlist is empty.' :
-      `${all.filter(i => i.status !== 'watched').length} to go · ${all.filter(i => i.status === 'watched').length} watched · ${all.length} total`;
-
-    buildFilters(all);
-
-    const list = filteredItems(all).sort((a, b) =>
-      (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1)
-    );
-    const listEl = document.getElementById('wl-list');
-
-    if (list.length === 0) {
-      listEl.innerHTML = searchQuery
-        ? `<div class="wl-empty">No matches for "${escapeHtml(searchQuery)}".</div>`
-        : `<div class="wl-empty">Nothing here yet.<br/>Tap "+ Add a film" or switch filters.</div>`;
-      return;
-    }
-
-    listEl.innerHTML = list.map(i => `
-      <div class="wl-ticket wl-priority-${i.priority} ${i.status === 'watched' ? 'wl-watched' : ''}">
-        <div class="wl-stub"></div>
-        <div class="wl-body">
-          <div class="wl-toprow">
-            <div class="wl-title ${i.status === 'watched' ? 'done' : ''}">${escapeHtml(i.title)}</div>
-            <div class="wl-actions">
-              <button class="wl-icon-btn check" onclick="wlCycleStatus('${i._id}', '${i.kind}')" title="Change status">✓</button>
-              <button class="wl-icon-btn" onclick="wlEdit('${i._id}', '${i.kind}')" title="Edit">✎</button>
-              <button class="wl-icon-btn del" onclick="wlDelete('${i._id}', '${i.kind}')" title="Remove">✕</button>
-            </div>
-          </div>
-          <div class="wl-meta">
-            ${i.platform ? `<span class="wl-tag platform">${escapeHtml(i.platform)}</span>` : ''}
-            ${i.language ? `<span class="wl-tag">${escapeHtml(i.language)}</span>` : ''}
-            ${i.genre ? `<span class="wl-tag">${escapeHtml(i.genre)}</span>` : ''}
-            ${i.kind === 'pending' ? `<span class="wl-tag custom">Syncing…</span>` : ''}
-          </div>
-          ${i.notes ? `<div class="wl-notes">${escapeHtml(i.notes)}</div>` : ''}
-          <div class="wl-statusbtn" onclick="wlCycleStatus('${i._id}', '${i.kind}')">${statusLabel(i.status)} · tap to change</div>
-        </div>
-      </div>
-    `).join('');
+  // ---------- init ----------
+  function onChipClick(e) {
+    const el = e.target.closest('[data-facet]');
+    if (el) wlToggleFilter(el.dataset.facet, el.dataset.val);
   }
 
   function init() {
     overrides = readLS(LS_OVERRIDES, {});
     hidden = readLS(LS_HIDDEN, []);
-    pendingAdds = readLS(LS_PENDING, []);
+    pendingAdds = readLS(LS_PENDING, []).map(normalizeRow);
     const cached = readLS(LS_CACHE, null);
-    if (cached) { sheetItems = cached.rows; lastSynced = cached.syncedAt; }
+    if (cached) { sheetItems = cached.rows.map(normalizeRow); lastSynced = cached.syncedAt; }
+
+    document.getElementById('wl-fpanel').addEventListener('click', onChipClick);
+    document.getElementById('wl-active').addEventListener('click', onChipClick);
+    document.getElementById('wl-list').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const act = el.dataset.act, id = el.dataset.id, kind = el.dataset.kind;
+      if (act === 'cycle') wlCycleStatus(id, kind);
+      else if (act === 'edit') wlEdit(id, kind);
+      else if (act === 'del') wlDelete(id, kind);
+      else if (act === 'clearall') wlClearAll();
+    });
+
     render();
     wlSyncFromSheet();
   }
