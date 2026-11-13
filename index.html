@@ -323,11 +323,13 @@
   const LS_HIDDEN = 'wl-hidden';         // [titleKey, ...] sheet rows hidden on this device
   const LS_PENDING = 'wl-pending-adds';  // items sent to the sheet but not yet seen in a sync
   const LS_CACHE = 'wl-sheet-cache';     // { rows: [...], syncedAt: ts }
+  const LS_RENAMED = 'wl-renamed';       // { oldTitleKey: true } old sheet rows hidden while a rename of a just-added title syncs
 
   let sheetItems = [];
   let pendingAdds = [];
   let overrides = {};
   let hidden = [];
+  let renamedAway = {};
   let editingId = null;
   let lastSynced = null;
   let searchQuery = '';
@@ -489,6 +491,24 @@
       pendingAdds = pendingAdds.filter(p => !sheetKeys.has(keyOf(p.title)));
       writeLS(LS_PENDING, pendingAdds);
 
+      // renames: once the sheet shows the new title, drop the local title override / hidden old row
+      Object.keys(overrides).forEach(k => {
+        const ov = overrides[k];
+        if (!ov || !ov.title) return;
+        const row = parsed.find(r => keyOf(r.title) === k);
+        if (row && row.title === ov.title) {
+          delete ov.title;
+        } else if (!row && sheetKeys.has(keyOf(ov.title))) {
+          const nk = keyOf(ov.title);
+          const moved = { ...ov }; delete moved.title;
+          overrides[nk] = { ...moved, ...(overrides[nk] || {}) };
+          delete overrides[k];
+        }
+      });
+      writeLS(LS_OVERRIDES, overrides);
+      Object.keys(renamedAway).forEach(k => { if (!sheetKeys.has(k)) delete renamedAway[k]; });
+      writeLS(LS_RENAMED, renamedAway);
+
       syncText.textContent = 'Synced just now from sheet';
     } catch (e) {
       const cached = readLS(LS_CACHE, null);
@@ -547,6 +567,10 @@
       notes: document.getElementById('f-notes').value.trim()
     };
 
+    const editItem = editingId ? getMergedItems().find(i => i._id === editingId) : null;
+    const origTitle = editItem ? editItem.title : '';
+    const titleChanged = !!editItem && fields.title !== origTitle;
+
     if (editingId && editingId.startsWith('sheet:')) {
       const tKey = editingId.slice(6);
       overrides[tKey] = {
@@ -554,13 +578,18 @@
         priority: fields.priority, notes: fields.notes, platform: fields.platform,
         language: fields.language, type: fields.type, genre: fields.genre
       };
+      if (titleChanged) overrides[tKey].title = fields.title;
       writeLS(LS_OVERRIDES, overrides);
-      wlWriteToSheet({ action: 'update', ...sheetPayload(fields) });
+      wlWriteToSheet({ action: 'update', oldTitle: origTitle, ...sheetPayload(fields) });
     } else if (editingId && editingId.startsWith('pending:')) {
       const idx = pendingAdds.findIndex(p => p.title === editingId.slice(8));
       if (idx > -1) pendingAdds[idx] = { ...pendingAdds[idx], ...fields };
       writeLS(LS_PENDING, pendingAdds);
-      wlWriteToSheet({ action: 'update', ...sheetPayload(fields) });
+      if (titleChanged && keyOf(fields.title) !== keyOf(origTitle)) {
+        renamedAway[keyOf(origTitle)] = true;   // hide the old-title row if the sheet snapshot still has it
+        writeLS(LS_RENAMED, renamedAway);
+      }
+      wlWriteToSheet({ action: 'update', oldTitle: origTitle, ...sheetPayload(fields) });
     } else {
       pendingAdds.unshift({ ...fields, status: 'to_watch', added: Date.now() });
       writeLS(LS_PENDING, pendingAdds);
@@ -589,7 +618,7 @@
     document.getElementById('f-priority').value = item.priority || 'medium';
     document.getElementById('f-notes').value = item.notes || '';
     document.getElementById('wl-form-context').textContent = kind === 'sheet'
-      ? 'Changes save straight to your sheet, matched by title — change the title itself in the sheet.'
+      ? 'Changes save straight to your sheet. You can fix the title here too.'
       : 'This was just added and is syncing to your sheet — it should be confirmed within a few minutes.';
     document.getElementById('wl-form').classList.add('open');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -617,7 +646,7 @@
       const next = order[(order.indexOf(current) + 1) % order.length];
       overrides[tKey] = { ...(overrides[tKey] || {}), status: next };
       writeLS(LS_OVERRIDES, overrides);
-      wlWriteToSheet({ action: 'update', title: src ? src.title : tKey, status: statusForSheet(next) });
+      wlWriteToSheet({ action: 'update', title: (overrides[tKey] && overrides[tKey].title) || (src ? src.title : tKey), status: statusForSheet(next) });
     } else {
       const t = id.slice(8);
       pendingAdds = pendingAdds.map(p => {
@@ -633,13 +662,13 @@
 
   // ---------- merged view ----------
   function getMergedItems() {
-    const visible = sheetItems.filter(i => !hidden.includes(keyOf(i.title)));
+    const visible = sheetItems.filter(i => !hidden.includes(keyOf(i.title)) && !renamedAway[keyOf(i.title)]);
     const fromSheet = visible.map(i => {
       const tKey = keyOf(i.title);
       const ov = overrides[tKey] || {};
       return normalizeRow({
         _id: 'sheet:' + tKey,
-        title: i.title,
+        title: ov.title || i.title,
         language: ov.language !== undefined ? ov.language : i.language,
         platform: ov.platform !== undefined ? ov.platform : i.platform,
         type: ov.type !== undefined ? ov.type : i.type,
@@ -1350,6 +1379,7 @@
   function init() {
     overrides = readLS(LS_OVERRIDES, {});
     hidden = readLS(LS_HIDDEN, []);
+    renamedAway = readLS(LS_RENAMED, {}) || {};
     pendingAdds = readLS(LS_PENDING, []).map(normalizeRow);
     const cached = readLS(LS_CACHE, null);
     if (cached) { sheetItems = cached.rows.map(normalizeRow); lastSynced = cached.syncedAt; }
